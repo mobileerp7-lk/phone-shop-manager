@@ -80,7 +80,7 @@ fun CloudScreen(repo: Repository, settings: ShopSettings, onBack: () -> Unit) {
         GlassField(url, { url = it }, "Project URL (https://...supabase.co)", keyboard = KeyboardType.Uri)
         GlassField(key, { key = it }, "anon public key")
         GlassField(email, { email = it }, "Login email", keyboard = KeyboardType.Email)
-        GlassField(password, { password = it }, "Login password", keyboard = KeyboardType.Password)
+        GlassField(password, { password = it }, "Login password", keyboard = KeyboardType.Password, hidden = true)
         GradientButton("Save and test", {
             val c = config()
             CloudBackup.save(context, c)
@@ -120,6 +120,7 @@ fun CloudScreen(repo: Repository, settings: ShopSettings, onBack: () -> Unit) {
         }
         var sharing by remember { mutableStateOf(Prefs.shopId(context).isNotBlank()) }
         var slot by remember { mutableStateOf(2) }
+        var confirmJoin by remember { mutableStateOf(false) }
         if (!sharing) {
             GradientButton("This is the FIRST phone: share my data", {
                 val c = config()
@@ -128,17 +129,25 @@ fun CloudScreen(repo: Repository, settings: ShopSettings, onBack: () -> Unit) {
                     if (err == null) { sharing = true; "Live sharing is on. Your data goes online in the next minute." } else err
                 }
             }, Modifier.fillMaxWidth(), enabled = !busy && settings.useSupabase)
-            Text("Another phone joining? Pick its number (each phone needs its own, so bill numbers never clash):", color = Muted, fontSize = 13.sp)
+            Text("On the SECOND phone only: pick its number (each phone needs its own, so bill numbers never clash):", color = Muted, fontSize = 13.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (n in 2..5) GlassChip("Phone $n", slot == n) { slot = n }
             }
-            GlassButton("Join the shop (replaces this phone's data)", {
-                val c = config()
-                run {
-                    val err = withContext(Dispatchers.IO) { SyncEngine.joinShop(context, repo, c, slot) }
-                    if (err == null) { sharing = true; "Joined. The shop's data arrives in the next minute." } else err
-                }
-            }, Modifier.fillMaxWidth(), enabled = !busy && settings.useSupabase)
+            GlassButton("SECOND phone only: join the shop", { confirmJoin = true }, Modifier.fillMaxWidth(), enabled = !busy && settings.useSupabase)
+            if (confirmJoin) ConfirmDialog(
+                "Delete this phone's data and join the shop?",
+                "Only press this on a SECOND phone. All shop data on THIS phone is deleted and replaced by the shop's data from Supabase. On your first phone, press the other button instead.",
+                "Delete and join",
+                onConfirm = {
+                    confirmJoin = false
+                    val c = config()
+                    run {
+                        val err = withContext(Dispatchers.IO) { SyncEngine.joinShop(context, repo, c, slot) }
+                        if (err == null) { sharing = true; "Joined. The shop's data arrives in the next minute." } else err
+                    }
+                },
+                onDismiss = { confirmJoin = false },
+            )
         } else {
             Text(Prefs.syncStatus(context).ifBlank { "Starting..." }, color = Good, fontSize = 13.sp)
             GlassButton("Turn live sharing off on this phone", { SyncEngine.stop(context); sharing = false; status = "Sharing is off." }, Modifier.fillMaxWidth())

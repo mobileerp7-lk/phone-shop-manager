@@ -276,6 +276,7 @@ fun GlassField(
     keyboard: KeyboardType = KeyboardType.Text,
     error: String? = null,
     readOnly: Boolean = false,
+    hidden: Boolean = false,
 ) {
     OutlinedTextField(
         value = value,
@@ -290,6 +291,7 @@ fun GlassField(
             null
         },
         keyboardOptions = KeyboardOptions(keyboardType = keyboard),
+        visualTransformation = if (hidden) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = GlassBase.copy(alpha = 0.75f),
