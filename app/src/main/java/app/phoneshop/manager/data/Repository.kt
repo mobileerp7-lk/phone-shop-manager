@@ -60,6 +60,7 @@ class Repository(private val db: AppDatabase) {
     private val moneyDao = db.moneyDao()
     private val saleDao = db.saleDao()
     private val purchaseDao = db.purchaseDao()
+    private val repairDao = db.repairDao()
 
     /** Never null once loaded; a shop that has not finished setup gets defaults. */
     val settings: Flow<ShopSettings> = settingsDao.observe().map { it ?: ShopSettings() }
@@ -157,6 +158,121 @@ class Repository(private val db: AppDatabase) {
     }
 
     suspend fun deleteEntryType(id: String) = moneyDao.softDeleteType(id, System.currentTimeMillis())
+
+    val repairJobs: Flow<List<RepairJob>> = repairDao.observeJobs()
+    val repairParts: Flow<List<RepairPart>> = repairDao.observeParts()
+    suspend fun getRepairJob(id: String): RepairJob? = repairDao.getJob(id)
+    fun observeRepairJob(id: String): Flow<RepairJob?> = repairDao.observeJob(id)
+
+    /** Takes qty items off the shelf (oldest batch first) and returns their average cost, or null if there is not enough. */
+    private suspend fun takeFromBatches(productId: String, qty: Int): Long? {
+        val batches = productDao.batchesWithStock(productId)
+        val available = batches.sumOf { it.remaining }
+        if (available < qty || qty <= 0) return null
+        val value = batches.sumOf { it.remaining.toLong() * it.unitCost }
+        var need = qty
+        for (b in batches) {
+            if (need == 0) break
+            val take = minOf(need, b.remaining)
+            productDao.upsertBatch(b.copy(remaining = b.remaining - take))
+            need -= take
+        }
+        return value * qty / available
+    }
+
+    /** Opens a job card. An advance goes into the chosen account straight away. */
+    suspend fun createRepairJob(
+        customerId: String?,
+        customerName: String,
+        phone: String,
+        device: String,
+        imei: String,
+        lockNote: String,
+        cameWith: String,
+        work: String,
+        problem: String,
+        estimate: Long,
+        advance: Long,
+        advanceAccountId: String?,
+        readyBy: Long?,
+    ): String? = db.withTransaction {
+        val settings = settingsDao.get() ?: ShopSettings()
+        val now = System.currentTimeMillis()
+        // A named customer gets a contact automatically so the job and its bill show on their profile.
+        var cid = customerId
+        if (cid == null && customerName.isNotBlank()) {
+            cid = UUID.randomUUID().toString()
+            contactDao.upsert(Contact(cid, "CUSTOMER", customerName.trim(), phone.trim(), "", "", 0L, now, now))
+        }
+        val id = UUID.randomUUID().toString()
+        repairDao.upsertJob(
+            RepairJob(
+                id, settings.nextJobNumber, cid, customerName.trim(), phone.trim(), device.trim(), imei.trim(), lockNote.trim(),
+                cameWith.trim(), work, problem.trim(), estimate, advance, readyBy, "RECEIVED", 0L, 0L, 30, "", null, now,
+            )
+        )
+        settingsDao.save(settings.copy(nextJobNumber = settings.nextJobNumber + 1))
+        if (advance > 0 && advanceAccountId != null) {
+            moneyDao.insertEntry(
+                newEntry("REPAIR_ADVANCE", advanceAccountId, advance, null, "Repair #R-${settings.nextJobNumber.toString().padStart(3, '0')} advance", id)
+                    .copy(contactId = cid, refType = "REPAIR", refId = id)
+            )
+        }
+        id
+    }
+
+    suspend fun updateRepairJob(job: RepairJob) = repairDao.upsertJob(job)
+
+    suspend fun setRepairStatus(id: String, status: String, assignedTo: String? = null) {
+        repairDao.getJob(id)?.let { repairDao.upsertJob(it.copy(status = status, assignedTo = assignedTo ?: it.assignedTo)) }
+    }
+
+    /** Takes a part from stock for this job at its average cost. Returns an error or null. */
+    suspend fun addRepairPart(jobId: String, productId: String, name: String, qty: Int): String? = db.withTransaction {
+        val cost = takeFromBatches(productId, qty) ?: return@withTransaction "Not enough of $name in stock."
+        repairDao.insertPart(RepairPart(UUID.randomUUID().toString(), jobId, productId, name, qty, cost))
+        null
+    }
+
+    /** Puts a part back on the shelf at the cost it was taken at. */
+    suspend fun removeRepairPart(partId: String) = db.withTransaction {
+        val p = repairDao.getPart(partId) ?: return@withTransaction
+        productDao.upsertBatch(StockBatch(UUID.randomUUID().toString(), p.productId, p.qty, p.qty, if (p.qty > 0) p.costTotal / p.qty else 0L, System.currentTimeMillis()))
+        repairDao.deletePart(partId)
+    }
+
+    /**
+     * Hands the phone back: the repair becomes a bill (so reports and the customer statement count it),
+     * the payment goes into the chosen accounts, and anything unpaid becomes the customer's debt.
+     */
+    suspend fun deliverRepair(jobId: String, charge: Long, payments: List<PaymentInput>, warrantyDays: Int): String? = db.withTransaction {
+        val job = repairDao.getJob(jobId) ?: return@withTransaction "Job not found."
+        if (job.status == "DELIVERED") return@withTransaction "This job was already delivered."
+        if (charge < 0) return@withTransaction "Enter the repair charge."
+        val settings = settingsDao.get() ?: ShopSettings()
+        val now = System.currentTimeMillis()
+        val paidNow = payments.filter { it.amount > 0 }.sumOf { it.amount }
+        val paid = job.advance + paidNow
+        if (paid > charge) return@withTransaction "The payments are more than the repair charge."
+        val due = charge - paid
+        if (due > 0 && job.customerId == null) return@withTransaction "Add the customer's name to the job, because money is left to pay."
+        val partsCost = repairDao.getParts(jobId).sumOf { it.costTotal } + job.outsideCost
+        val saleId = UUID.randomUUID().toString()
+        val label = "Repair #R-${job.jobNo.toString().padStart(3, '0')}: ${job.work.ifBlank { job.device }}"
+        saleDao.upsertSale(
+            Sale(saleId, settings.nextBillNumber, job.customerId, charge, 0L, 0L, charge, paid, due, null, "DONE", "", "Owner", now)
+        )
+        saleDao.insertLine(SaleLine(UUID.randomUUID().toString(), saleId, "SERVICE", null, label, 1, charge, charge, partsCost, null, job.imei, 0))
+        for (p in payments.filter { it.amount > 0 }) {
+            moneyDao.insertEntry(
+                newEntry("SALE", p.accountId, p.amount, null, "Bill #${settings.nextBillNumber}", saleId)
+                    .copy(contactId = job.customerId, refType = "SALE", refId = saleId)
+            )
+        }
+        settingsDao.save(settings.copy(nextBillNumber = settings.nextBillNumber + 1))
+        repairDao.upsertJob(job.copy(status = "DELIVERED", charge = charge, warrantyDays = warrantyDays, saleId = saleId, deliveredAt = now))
+        null
+    }
 
     val purchaseOrders: Flow<List<PurchaseOrder>> = purchaseDao.observeOrders()
     val poLines: Flow<List<PoLine>> = purchaseDao.observeAllPoLines()

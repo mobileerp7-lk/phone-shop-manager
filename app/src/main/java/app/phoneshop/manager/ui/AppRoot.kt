@@ -176,6 +176,27 @@ private fun AppNav(repo: Repository, settings: ShopSettings) {
             val id = entry.arguments?.getString("id") ?: "new"
             ReceiveScreen(repo, settings, if (id == "new") null else id, onBack = { nav.popBackStack() })
         }
+        composable("repairs") {
+            RepairsScreen(repo, settings, onBack = { nav.popBackStack() }, onNew = { nav.navigate("job_form/new") }, onOpen = { nav.navigate("job/$it") })
+        }
+        composable(
+            "job_form/{id}",
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString("id") ?: "new"
+            JobFormScreen(
+                repo, settings, if (id == "new") null else id,
+                onBack = { nav.popBackStack() },
+                onSaved = { saved -> nav.popBackStack(); if (id == "new") nav.navigate("job/$saved") },
+            )
+        }
+        composable(
+            "job/{id}",
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString("id") ?: ""
+            JobDetailScreen(repo, settings, id, onBack = { nav.popBackStack() }, onEdit = { nav.navigate("job_form/$id") }, onOpenBill = { nav.navigate("bill/$it") })
+        }
         composable("services") { ServicesScreen(repo, settings, onBack = { nav.popBackStack() }) }
         composable("categories") { CategoriesScreen(repo, onBack = { nav.popBackStack() }) }
         composable(

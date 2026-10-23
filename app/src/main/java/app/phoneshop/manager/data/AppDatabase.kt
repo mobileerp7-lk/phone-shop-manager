@@ -133,6 +133,36 @@ interface MoneyDao {
 }
 
 @Dao
+interface RepairDao {
+    @Query("SELECT * FROM repair_jobs ORDER BY createdAt DESC")
+    fun observeJobs(): Flow<List<RepairJob>>
+
+    @Query("SELECT * FROM repair_jobs WHERE id = :id")
+    fun observeJob(id: String): Flow<RepairJob?>
+
+    @Query("SELECT * FROM repair_jobs WHERE id = :id")
+    suspend fun getJob(id: String): RepairJob?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertJob(job: RepairJob)
+
+    @Query("SELECT * FROM repair_parts")
+    fun observeParts(): Flow<List<RepairPart>>
+
+    @Query("SELECT * FROM repair_parts WHERE id = :id")
+    suspend fun getPart(id: String): RepairPart?
+
+    @Query("SELECT * FROM repair_parts WHERE jobId = :id")
+    suspend fun getParts(id: String): List<RepairPart>
+
+    @Insert
+    suspend fun insertPart(part: RepairPart)
+
+    @Query("DELETE FROM repair_parts WHERE id = :id")
+    suspend fun deletePart(id: String)
+}
+
+@Dao
 interface PurchaseDao {
     @Query("SELECT * FROM purchase_orders ORDER BY createdAt DESC")
     fun observeOrders(): Flow<List<PurchaseOrder>>
@@ -288,8 +318,10 @@ interface ProductDao {
         PoLine::class,
         Purchase::class,
         PurchaseLine::class,
+        RepairJob::class,
+        RepairPart::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -301,6 +333,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun moneyDao(): MoneyDao
     abstract fun saleDao(): SaleDao
     abstract fun purchaseDao(): PurchaseDao
+    abstract fun repairDao(): RepairDao
 
     companion object {
         fun build(context: Context): AppDatabase =

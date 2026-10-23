@@ -27,6 +27,7 @@ data class ShopSettings(
     /** Tax rate in hundredths of a percent (1800 = 18%). Prices already include tax. */
     val taxRateBp: Int = 0,
     val nextPoNumber: Int = 1,
+    val nextJobNumber: Int = 1,
 )
 
 @Entity(tableName = "categories")
@@ -274,4 +275,46 @@ data class PurchaseLine(
     val name: String,
     val qty: Int,
     val unitCost: Long,
+)
+
+/**
+ * A phone brought in for repair. status: RECEIVED, CHECKING, WAITING_PARTS, REPAIRING, READY, DELIVERED, CANCELLED.
+ * When delivered it becomes a bill (saleId) so reports and the customer statement count it.
+ */
+@Entity(tableName = "repair_jobs", indices = [Index("status"), Index("customerId")])
+data class RepairJob(
+    @PrimaryKey val id: String,
+    val jobNo: Int,
+    val customerId: String?,
+    val customerName: String,
+    val phone: String,
+    val device: String,
+    val imei: String,
+    val lockNote: String,
+    val cameWith: String,
+    val work: String,
+    val problem: String,
+    val estimate: Long,
+    val advance: Long,
+    val readyBy: Long?,
+    val status: String,
+    /** Final charge, set when delivered. */
+    val charge: Long,
+    val outsideCost: Long,
+    val warrantyDays: Int,
+    val assignedTo: String,
+    val saleId: String?,
+    val createdAt: Long,
+    val deliveredAt: Long? = null,
+)
+
+/** A part taken from stock for a repair. costTotal is frozen when added. */
+@Entity(tableName = "repair_parts", indices = [Index("jobId")])
+data class RepairPart(
+    @PrimaryKey val id: String,
+    val jobId: String,
+    val productId: String,
+    val name: String,
+    val qty: Int,
+    val costTotal: Long,
 )
