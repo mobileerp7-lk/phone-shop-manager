@@ -1,0 +1,34 @@
+name: Create release key
+
+# Run ONCE by hand: Actions tab > Create release key > Run workflow.
+# It makes the private signing key and saves it as GitHub Secrets. The key is never shown or committed.
+# It needs a repository secret called SECRETS_TOKEN (a short-lived token the owner makes; delete it afterwards).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  make-key:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Make the key and save it as secrets
+        env:
+          GH_TOKEN: ${{ secrets.SECRETS_TOKEN }}
+          EXISTING: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then echo "SECRETS_TOKEN is missing."; exit 1; fi
+          if [ -n "$EXISTING" ]; then echo "A release key already exists. Not replacing it."; exit 1; fi
+          PASS=$(openssl rand -hex 16)
+          echo "::add-mask::$PASS"
+          keytool -genkeypair -keystore "$RUNNER_TEMP/release.keystore" -storetype PKCS12 \
+            -alias shopkey -keyalg RSA -keysize 2048 -validity 12000 \
+            -storepass "$PASS" -keypass "$PASS" -dname "CN=Phone Shop Manager"
+          base64 -w0 "$RUNNER_TEMP/release.keystore" | gh secret set RELEASE_KEYSTORE_BASE64 -R "${{ github.repository }}"
+          printf %s "$PASS" | gh secret set RELEASE_KEYSTORE_PASSWORD -R "${{ github.repository }}"
+          printf %s "$PASS" | gh secret set RELEASE_KEY_PASSWORD -R "${{ github.repository }}"
+          printf %s shopkey | gh secret set RELEASE_KEY_ALIAS -R "${{ github.repository }}"
+          echo "Release key saved to GitHub Secrets."
