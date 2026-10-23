@@ -21,6 +21,42 @@ a{color:#1D4ED8}a:hover{color:#1E3A8A}
 .pos{color:#15803D}.neg{color:#B91C1C}
 .btn{height:52px;border:0;border-radius:10px;background:#1D4ED8;color:#fff;font:inherit;font-size:15px;font-weight:700;flex:1}
 .btn2{height:52px;border:1px solid #1D4ED8;border-radius:10px;background:#fff;color:#1D4ED8;font:inherit;font-size:14px;font-weight:600;flex:1}
+/* THEME: gradient + glass (shared by every screen) */
+div[style*="width:390px"]{background:radial-gradient(120% 60% at 100% 0%,#C7D2FE 0%,rgba(199,210,254,0) 60%),radial-gradient(100% 50% at 0% 100%,#A5F3FC 0%,rgba(165,243,252,0) 60%),linear-gradient(160deg,#EEF2FF 0%,#F5F3FF 45%,#ECFEFF 100%) !important}
+.bar,div[style*="background:#fff;border-bottom"],.tabs{background:rgba(255,255,255,.62) !important;backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);border-bottom:1px solid rgba(255,255,255,.7) !important;box-shadow:0 1px 12px rgba(79,70,229,.08)}
+.nav,div[style*="background:#fff;border-top"]{background:rgba(255,255,255,.7) !important;backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);border-top:1px solid rgba(255,255,255,.8) !important;box-shadow:0 -4px 20px rgba(79,70,229,.08)}
+.card,.item,.job,.po,.acc,.grp,.list,.tbl,.tile,.paper,.k div,.box,.not,.sync{background:rgba(255,255,255,.55) !important;backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);border:1px solid rgba(255,255,255,.75) !important;box-shadow:0 8px 24px rgba(79,70,229,.10),inset 0 1px 0 rgba(255,255,255,.8);border-radius:16px !important}
+.debt,.owe,.short,.note,.net,.ok{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 6px 18px rgba(79,70,229,.08)}
+.inp{background:rgba(255,255,255,.7) !important;border:1px solid rgba(99,102,241,.25) !important;transition:border-color .2s,box-shadow .2s}
+.inp:focus{outline:none;border-color:#6366F1 !important;box-shadow:0 0 0 3px rgba(99,102,241,.25)}
+.btn,.fab,.chipon,.act button.main{background:linear-gradient(135deg,#4F46E5 0%,#7C3AED 55%,#0891B2 100%) !important;color:#fff !important;border:0 !important;box-shadow:0 8px 20px rgba(79,70,229,.35)}
+.btn2,.act button{background:rgba(255,255,255,.6) !important;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(79,70,229,.45) !important;color:#3730A3 !important}
+.chip{background:rgba(255,255,255,.6) !important;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.8) !important}
+.chipon{border:0 !important}
+.nav a.on,.tabs button.on{color:#4F46E5 !important}
+.tabs button.on{border-bottom-color:#7C3AED !important}
+.seg{background:rgba(255,255,255,.45) !important;backdrop-filter:blur(10px)}
+.seg button.on{background:rgba(255,255,255,.9) !important}
+a{color:#4338CA}
+.ph{background:rgba(255,255,255,.45) !important;border:1px dashed rgba(79,70,229,.4) !important}
+.ic,.av{background:linear-gradient(135deg,#C7D2FE,#A5F3FC) !important;color:#312E81 !important}
+.tile svg{color:#6D28D9}
+.bars span{background:linear-gradient(180deg,#7C3AED,#4F46E5) !important;transform-origin:bottom;animation:grow .9s cubic-bezier(.2,.8,.2,1) both}
+.bars span.lo{background:linear-gradient(180deg,#C4B5FD,#A5B4FC) !important}
+@keyframes rise{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes glow{0%,100%{box-shadow:0 8px 20px rgba(79,70,229,.35)}50%{box-shadow:0 8px 30px rgba(124,58,237,.6)}}
+.card,.item,.job,.po,.acc,.grp,.list,.tbl,.tile,.paper,.k div,.box,.debt,.owe,.net,.short{animation:rise .55s cubic-bezier(.2,.8,.2,1) both}
+.item:nth-child(2),.job:nth-child(2),.po:nth-child(2),.acc:nth-child(2),.k div:nth-child(2){animation-delay:.06s}
+.item:nth-child(3),.job:nth-child(3),.po:nth-child(3),.acc:nth-child(3),.k div:nth-child(3){animation-delay:.12s}
+.item:nth-child(4),.job:nth-child(4),.po:nth-child(4),.acc:nth-child(4),.k div:nth-child(4){animation-delay:.18s}
+.item:nth-child(5),.job:nth-child(5),.po:nth-child(5),.acc:nth-child(5){animation-delay:.24s}
+.item:nth-child(n+6),.job:nth-child(n+6),.po:nth-child(n+6){animation-delay:.3s}
+.btn,.btn2,.chip,.tile,.fab,.act button,.nav a,.item,.job,.po,.acc,.p,.grp a{transition:transform .18s ease,box-shadow .18s ease,background .2s ease}
+.btn:active,.btn2:active,.chip:active,.tile:active,.fab:active,.act button:active{transform:scale(.96)}
+.item:hover,.job:hover,.po:hover,.acc:hover,.tile:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(79,70,229,.18)}
+.fab{animation:glow 2.6s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
 </style>
 </helmet>
 <div style="width:390px;height:844px;box-sizing:border-box;background:#F4F4F5;font-family:system-ui,-apple-system,Roboto,sans-serif;color:#18181B;display:flex;flex-direction:column;overflow:hidden">

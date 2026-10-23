@@ -21,6 +21,10 @@ screen design is the wireframe linked at the top of `PLAN.md`; follow it
 when building screens. `PLAN.md` holds the full feature list, build order, money rules, open
 questions and current status. Read it first.
 
+## Look and feel
+
+Gradient + glassmorphism UI with meaningful animation (see "Look and feel" in `PLAN.md`). Respect reduced-motion, keep AA contrast, 44 px touch targets. Default currency LKR, owner-selectable.
+
 ## How we work
 
 - Build **one step at a time** in the order in `PLAN.md` section 3. Each step

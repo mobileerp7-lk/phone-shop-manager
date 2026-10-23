@@ -47,6 +47,18 @@ added later without a rewrite.
 - Offline-only mode works with no account at all, so a very small shop can
   start without any setup.
 
+### Look and feel (Faiz, 23 Oct)
+
+Modern **gradient + glassmorphism** design with purposeful motion:
+- Soft indigo/violet/cyan gradient backgrounds; frosted-glass cards, top bar and bottom bar (blur + translucent white, thin light border, soft shadow).
+- Primary buttons use a violet-to-teal gradient; secondary buttons are glass with a coloured outline.
+- Motion: cards rise in on screen open (staggered), buttons and chips press with a small scale, lists lift slightly on touch, charts grow in, the main "+ Add" button has a gentle glow, screens slide between steps.
+- Rules: text contrast must stay AA on glass (dark text on light glass), touch targets at least 44 px, and all animation turns off when the phone's "reduce motion" setting is on. Heavy blur is limited on low-end phones so the app stays fast.
+
+### Currency
+
+Default currency is **LKR (Sri Lankan Rupee)** and default country Sri Lanka. The owner picks the currency and country in the setup wizard and can change them in Settings; amounts are stored as whole minor units and formatted per currency.
+
 ### Template app
 
 Nothing shop-specific is written into the code. A first-run setup wizard and
