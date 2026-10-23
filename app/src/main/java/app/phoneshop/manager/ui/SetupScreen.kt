@@ -107,16 +107,18 @@ fun SetupScreen(repo: Repository, initial: ShopSettings, onDone: () -> Unit) {
                             "Country",
                             Locales.country(country).name,
                             Locales.countries.map { it.name },
-                        ) { picked ->
+                            onPick = { picked ->
                             val c = Locales.countries.first { it.name == picked }
                             country = c.code
                             currency = c.currency
-                        }
+                            },
+                        )
                         PickerField(
                             "Currency",
                             Locales.currency(currency).let { "${it.code} - ${it.name}" },
                             Locales.currencies.map { "${it.code} - ${it.name}" },
-                        ) { picked -> currency = picked.substringBefore(" - ") }
+                            onPick = { picked -> currency = picked.substringBefore(" - ") },
+                        )
                         GlassCard(Modifier.fillMaxWidth()) {
                             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
