@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New purchase order</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+.bar{height:56px;flex:none;background:#fff;border-bottom:1px solid #D4D4D8;display:flex;align-items:center;gap:4px;padding:0 8px 0 4px;font-size:18px;font-weight:600}
+.ib{width:44px;height:44px;border:0;background:none;display:flex;align-items:center;justify-content:center;color:#18181B}
+.lbl{font-size:12px;color:#3F3F46;display:block;margin-bottom:3px;font-weight:500}
+.inp{width:100%;box-sizing:border-box;height:44px;border:1px solid #A1A1AA;border-radius:8px;padding:0 10px;font:inherit;font-size:15px;background:#fff;color:#18181B}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.card{background:#fff;border:1px solid #D4D4D8;border-radius:12px;padding:4px 12px}
+.line{padding:10px 0;border-top:1px solid #E4E4E7;display:flex;flex-direction:column;gap:3px}
+.r{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.muted{color:#52525B;font-size:13px}
+.sec{font-size:12px;font-weight:700;color:#3F3F46;text-transform:uppercase;letter-spacing:.04em;margin:2px 0 0}
+.chip{display:inline-flex;align-items:center;height:36px;padding:0 12px;border-radius:18px;border:1px solid #A1A1AA;font-size:14px;background:#fff;font-family:inherit;color:#18181B;white-space:nowrap}
+.btn{height:52px;border:0;border-radius:10px;background:#1D4ED8;color:#fff;font:inherit;font-size:15px;font-weight:700;flex:1}
+.btn2{height:52px;border:1px solid #1D4ED8;border-radius:10px;background:#fff;color:#1D4ED8;font:inherit;font-size:14px;font-weight:600;flex:1}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#F4F4F5;font-family:system-ui,-apple-system,Roboto,sans-serif;color:#18181B;display:flex;flex-direction:column;overflow:hidden">
+<div class="bar"><button class="ib" aria-label="Back"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button><span>New purchase order PO-032</span></div>
+<div style="flex:1;padding:12px 16px;display:flex;flex-direction:column;gap:9px;overflow:hidden">
+<div><label class="lbl" for="o1">Supplier</label><select class="inp" id="o1"><option>Galaxy Distributors (you owe 64,000.00)</option></select></div>
+<div class="g2"><div><label class="lbl" for="o2">Order date</label><input class="inp" id="o2" value="23 Oct 2026"></div><div><label class="lbl" for="o3">Expected delivery</label><input class="inp" id="o3" value="26 Oct 2026"></div></div>
+<div style="display:flex;gap:8px"><button class="chip">+ Add item</button><button class="chip">+ Add all low-stock items</button></div>
+<p class="sec">Items</p>
+<div class="card">
+<div class="line" style="border-top:0"><div class="r"><b>Samsung Galaxy A15 128GB Black</b><span>×5</span></div><div class="r"><span class="muted">21,500.00 each (last price)</span><b>107,500.00</b></div></div>
+<div class="line"><div class="r"><b>Type-C fast charger 25W</b><span>×20</span></div><div class="r"><span class="muted">320.00 each · only 2 in stock</span><b>6,400.00</b></div></div>
+<div class="line"><div class="r"><b>Silicone cover, A15</b><span>×30</span></div><div class="r"><span class="muted">90.00 each</span><b>2,700.00</b></div></div>
+</div>
+<div class="card" style="padding:12px"><div class="r" style="font-size:18px;font-weight:700"><span>Order total</span><span>116,600.00</span></div><div class="muted">An order does not change stock or money. That only happens when the goods are received.</div></div>
+<div><label class="lbl" for="o4">Note to supplier</label><input class="inp" id="o4" value="Please send with original boxes"></div>
+</div>
+<div style="padding:12px 16px;background:#fff;border-top:1px solid #D4D4D8;display:flex;gap:8px"><button class="btn2">Save draft</button><button class="btn">Send on WhatsApp</button></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

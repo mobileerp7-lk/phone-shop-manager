@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Daily summary</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+.bar{height:56px;flex:none;background:#fff;border-bottom:1px solid #D4D4D8;display:flex;align-items:center;gap:4px;padding:0 8px 0 4px;font-size:18px;font-weight:600}
+.ib{width:44px;height:44px;border:0;background:none;display:flex;align-items:center;justify-content:center;color:#18181B}
+.card{background:#fff;border:1px solid #D4D4D8;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.r{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px}
+.muted{color:#52525B;font-size:13px}
+.sec{font-size:12px;font-weight:700;color:#3F3F46;text-transform:uppercase;letter-spacing:.04em;margin:2px 0 0}
+.tot{border-top:1px solid #E4E4E7;padding-top:6px;font-weight:700;font-size:15px}
+.pos{color:#15803D}.neg{color:#B91C1C}
+.btn{height:52px;border:0;border-radius:10px;background:#1D4ED8;color:#fff;font:inherit;font-size:15px;font-weight:700;flex:1}
+.btn2{height:52px;border:1px solid #1D4ED8;border-radius:10px;background:#fff;color:#1D4ED8;font:inherit;font-size:14px;font-weight:600;flex:1}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#F4F4F5;font-family:system-ui,-apple-system,Roboto,sans-serif;color:#18181B;display:flex;flex-direction:column;overflow:hidden">
+<div class="bar"><button class="ib" aria-label="Previous day"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button><span style="flex:1;text-align:center">Fri, 23 Oct 2026</span><button class="ib" aria-label="Next day"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg></button></div>
+<div style="flex:1;padding:12px 16px;display:flex;flex-direction:column;gap:9px;overflow:hidden">
+<p class="sec">Business today</p>
+<div class="card">
+<div class="r"><span>Product sales (12 bills)</span><span>48,500.00</span></div>
+<div class="r"><span>Repairs delivered (5 jobs)</span><span>6,200.00</span></div>
+<div class="r"><span>Other income</span><span>0.00</span></div>
+<div class="r"><span>Cost of items sold</span><span class="neg">−40,880.00</span></div>
+<div class="r"><span>Repair parts used</span><span class="neg">−2,500.00</span></div>
+<div class="r"><span>Expenses (3)</span><span class="neg">−1,450.00</span></div>
+<div class="r tot"><span>Profit today</span><span class="pos">9,870.00</span></div>
+</div>
+<p class="sec">Money movement</p>
+<div class="card">
+<div class="r"><span>Cash drawer</span><span>20,000 → 22,300</span></div>
+<div class="r"><span>Bank account</span><span>160,640 → 185,640</span></div>
+<div class="r"><span>Mobile wallet</span><span>3,900 → 8,900</span></div>
+</div>
+<p class="sec">Credit</p>
+<div class="card">
+<div class="r"><span>New customer debt</span><span>5,000.00</span></div>
+<div class="r"><span>Debt collected</span><span>7,500.00</span></div>
+<div class="r"><span>Paid to suppliers</span><span>4,550.00</span></div>
+</div>
+<p class="sec">Top items today</p>
+<div class="card"><div class="r"><span>Galaxy A15 128GB</span><span>2 sold</span></div><div class="r"><span>Tempered glass</span><span>9 sold</span></div></div>
+</div>
+<div style="padding:12px 16px;background:#fff;border-top:1px solid #D4D4D8;display:flex;gap:8px"><button class="btn2">Share on WhatsApp</button><button class="btn">Close the day</button></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

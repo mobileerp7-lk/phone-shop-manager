@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Product details</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+.bar{height:56px;flex:none;background:#fff;border-bottom:1px solid #D4D4D8;display:flex;align-items:center;gap:4px;padding:0 8px 0 4px;font-size:18px;font-weight:600}
+.ib{width:44px;height:44px;border:0;background:none;display:flex;align-items:center;justify-content:center;color:#18181B}
+.card{background:#fff;border:1px solid #D4D4D8;border-radius:12px;padding:12px}
+.btn{height:48px;border:0;border-radius:10px;background:#1D4ED8;color:#fff;font:inherit;font-size:16px;font-weight:600;flex:1}
+.btn2{height:48px;border:1px solid #1D4ED8;border-radius:10px;background:#fff;color:#1D4ED8;font:inherit;font-size:15px;font-weight:600;flex:1}
+.ph{background:#E4E4E7;border:1px dashed #A1A1AA;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#52525B;font-size:12px;flex:none}
+.muted{color:#52525B;font-size:13px}
+.r{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-bottom:1px solid #D4D4D8}
+.tabs button{height:44px;border:0;background:none;font:inherit;font-size:14px;color:#52525B}
+.tabs button.on{color:#1D4ED8;font-weight:700;border-bottom:3px solid #1D4ED8}
+.unit{padding:10px 0;border-top:1px solid #E4E4E7;display:flex;flex-direction:column;gap:2px}
+.tag{display:inline-block;font-size:12px;font-weight:600;border-radius:6px;padding:2px 6px}
+.in{background:#DCFCE7;color:#166534}.out{background:#E4E4E7;color:#3F3F46}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#F4F4F5;font-family:system-ui,-apple-system,Roboto,sans-serif;color:#18181B;display:flex;flex-direction:column;overflow:hidden">
+<div class="bar"><button class="ib" aria-label="Back"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button><span style="flex:1">Product</span><a href="#" style="font-size:15px;padding:0 8px">Edit</a></div>
+<div style="flex:1;padding:12px 16px;display:flex;flex-direction:column;gap:10px;overflow:hidden">
+<div style="display:flex;gap:12px"><div class="ph" style="width:96px;height:96px">Photo</div><div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:17px;font-weight:700">Samsung Galaxy A15</div><div class="muted">128 GB · 6 GB RAM · Black · New</div><div class="muted">Warranty 12 months</div><div style="font-size:18px;font-weight:700">24,999.00</div></div></div>
+<div class="card" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;text-align:center">
+<div><div class="muted">In stock</div><div style="font-size:18px;font-weight:700">4</div></div>
+<div><div class="muted">Sold this month</div><div style="font-size:18px;font-weight:700">7</div></div>
+<div><div class="muted">Cost range</div><div style="font-size:18px;font-weight:700">18–24k</div></div>
+</div>
+<div class="tabs"><button class="on">Units (IMEI)</button><button>History</button><button>Details</button></div>
+<div class="card" style="padding:4px 12px">
+<div class="unit" style="border-top:0"><div class="r"><b>356789104512345</b><span class="tag in">In stock</span></div><div class="muted">Bought 05 Oct from Galaxy Distributors · cost 20,000</div></div>
+<div class="unit"><div class="r"><b>356789104598761</b><span class="tag in">In stock</span></div><div class="muted">Bought 21 Oct from Mobile Mart · cost 24,000</div></div>
+<div class="unit"><div class="r"><b>356789104577120</b><span class="tag out">Sold</span></div><div class="muted">Cost 18,000 · sold 20 Oct for 24,999 to Ravi K. · profit 6,999 · Bill #1042</div></div>
+<div class="unit"><div class="r"><b>356789104533008</b><span class="tag out">Sold</span></div><div class="muted">Cost 20,000 · sold 18 Oct for 23,500 to Walk-in · profit 3,500 · Bill #1031</div></div>
+</div>
+<div class="muted">Each phone keeps the exact price you paid for it, even when the same model is bought at different prices. Profit is worked out per phone and never changes later. Search any IMEI to see where a phone came from and who bought it.</div>
+</div>
+<div style="padding:12px 16px;background:#fff;border-top:1px solid #D4D4D8;display:flex;gap:8px"><button class="btn2">Adjust stock</button><button class="btn">Sell this</button></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

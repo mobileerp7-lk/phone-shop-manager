@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Add product</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+.bar{height:56px;flex:none;background:#fff;border-bottom:1px solid #D4D4D8;display:flex;align-items:center;gap:4px;padding:0 8px 0 4px;font-size:18px;font-weight:600}
+.ib{width:44px;height:44px;border:0;background:none;display:flex;align-items:center;justify-content:center;color:#18181B}
+.lbl{font-size:12px;color:#3F3F46;display:block;margin-bottom:3px;font-weight:500}
+.inp{width:100%;box-sizing:border-box;height:44px;border:1px solid #A1A1AA;border-radius:8px;padding:0 10px;font:inherit;font-size:15px;background:#fff;color:#18181B}
+.btn{height:48px;border:0;border-radius:10px;background:#1D4ED8;color:#fff;font:inherit;font-size:16px;font-weight:600;flex:1}
+.btn2{height:48px;border:1px solid #1D4ED8;border-radius:10px;background:#fff;color:#1D4ED8;font:inherit;font-size:15px;font-weight:600;flex:1}
+.chip{display:inline-flex;align-items:center;height:32px;padding:0 12px;border-radius:16px;border:1px solid #A1A1AA;font-size:13px;background:#fff;font-family:inherit;color:#18181B;white-space:nowrap}
+.chipon{background:#1D4ED8;color:#fff;border-color:#1D4ED8}
+.sec{font-size:12px;font-weight:700;color:#3F3F46;text-transform:uppercase;letter-spacing:.04em;margin:2px 0 0}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.ph{background:#E4E4E7;border:1px dashed #A1A1AA;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#52525B;font-size:11px;flex:none}
+.muted{color:#52525B;font-size:12px}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#F4F4F5;font-family:system-ui,-apple-system,Roboto,sans-serif;color:#18181B;display:flex;flex-direction:column;overflow:hidden">
+<div class="bar"><button class="ib" aria-label="Back"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button><span>Add product</span></div>
+<div style="flex:1;padding:12px 16px;display:flex;flex-direction:column;gap:10px;overflow:hidden">
+<div style="display:flex;gap:8px"><div class="ph" style="width:64px;height:64px">+ Camera</div><div class="ph" style="width:64px;height:64px">+ Gallery</div><div class="ph" style="width:64px;height:64px">Photo 3</div></div>
+<div><span class="lbl">Category (decides the questions below)</span><div style="display:flex;gap:6px"><button class="chip chipon">Phone</button><button class="chip">Accessory</button><button class="chip">Spare part</button><button class="chip">Other</button></div></div>
+<p class="sec">Phone details</p>
+<div class="g2"><div><label class="lbl" for="a1">Brand</label><select class="inp" id="a1"><option>Samsung</option></select></div><div><label class="lbl" for="a2">Model</label><input class="inp" id="a2" value="Galaxy A15"></div></div>
+<div class="g3"><div><label class="lbl" for="a3">Storage</label><select class="inp" id="a3"><option>128 GB</option></select></div><div><label class="lbl" for="a4">RAM</label><select class="inp" id="a4"><option>6 GB</option></select></div><div><label class="lbl" for="a5">Colour</label><input class="inp" id="a5" value="Black"></div></div>
+<div><span class="lbl">Condition</span><div style="display:flex;gap:6px"><button class="chip chipon">New</button><button class="chip">Used</button><button class="chip">Refurbished</button></div></div>
+<div class="g2"><div><label class="lbl" for="a6">Warranty (months)</label><input class="inp" id="a6" value="12"></div><div><label class="lbl" for="a7">Barcode / SKU</label><input class="inp" id="a7" value="Scan or type"></div></div>
+<p class="sec">Prices</p>
+<div class="g3"><div><label class="lbl" for="a8">Buying price</label><input class="inp" id="a8" value="21,500"></div><div><label class="lbl" for="a9">Selling price</label><input class="inp" id="a9" value="24,999"></div><div><label class="lbl" for="a10">Lowest price</label><input class="inp" id="a10" value="23,500"></div></div>
+<div class="muted">Profit per phone: 3,499.00. Staff cannot sell below the lowest price.</div>
+<p class="sec">Stock</p>
+<div style="background:#fff;border:1px solid #D4D4D8;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;justify-content:space-between;font-size:14px"><span>Opening stock: 2 phones</span><a href="#">+ Scan IMEI</a></div>
+<div class="muted">IMEI 1: 356789104512345 · IMEI 2: 356789104512352</div>
+<div class="muted">IMEI 1: 356789104598761 · IMEI 2: 356789104598779</div>
+</div>
+</div>
+<div style="padding:12px 16px;background:#fff;border-top:1px solid #D4D4D8;display:flex;gap:8px"><button class="btn2">Save and add another</button><button class="btn">Save</button></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

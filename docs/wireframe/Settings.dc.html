@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+.bar{height:56px;flex:none;background:#fff;border-bottom:1px solid #D4D4D8;display:flex;align-items:center;gap:4px;padding:0 8px 0 4px;font-size:18px;font-weight:600}
+.ib{width:44px;height:44px;border:0;background:none;display:flex;align-items:center;justify-content:center;color:#18181B}
+.sec{font-size:12px;font-weight:700;color:#3F3F46;text-transform:uppercase;letter-spacing:.04em;margin:8px 0 4px}
+.grp{background:#fff;border:1px solid #D4D4D8;border-radius:12px;display:flex;flex-direction:column}
+.grp a{min-height:46px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 14px;color:#18181B;text-decoration:none;font-size:15px;border-top:1px solid #E4E4E7}
+.grp a:first-child{border-top:0}
+.grp a span{color:#52525B;font-size:13px;text-align:right}
+.sync{background:#F0FDF4;border:1px solid #86EFAC;border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;font-size:14px}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#F4F4F5;font-family:system-ui,-apple-system,Roboto,sans-serif;color:#18181B;display:flex;flex-direction:column;overflow:hidden">
+<div class="bar"><button class="ib" aria-label="Back"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button><span>Settings</span></div>
+<div style="flex:1;padding:8px 16px 16px;display:flex;flex-direction:column;gap:2px;overflow:hidden">
+<div class="sync"><span><b>Saved online</b> · last sync 4:15 pm</span><a href="#">Sync now</a></div>
+<p class="sec">Shop (template settings)</p>
+<div class="grp"><a href="#">Shop name, logo, address <span>›</span></a><a href="#">Country and currency <span>[Choose]</span></a><a href="#">Tax (GST / VAT) <span>Off</span></a><a href="#">Language <span>English</span></a></div>
+<p class="sec">Selling</p>
+<div class="grp"><a href="#">Bill layout and footer <span>›</span></a><a href="#">Bill number format <span>#1001</span></a><a href="#">Receipt printer <span>None</span></a><a href="#">Payment methods <span>Cash, Bank, Wallet</span></a></div>
+<p class="sec">Stock and money</p>
+<div class="grp"><a href="#">Categories and questions <span>4</span></a><a href="#">Services and charges <span>12</span></a><a href="#">Money accounts <span>4</span></a><a href="#">Expense and income types <span>›</span></a><a href="#">Stock cost method (no-IMEI items) <span>Average</span></a><a href="#">Low-stock alert level <span>3</span></a></div>
+<p class="sec">People and safety</p>
+<div class="grp"><a href="#">Staff and roles <span>Owner</span></a><a href="#">PIN / fingerprint lock <span>On</span></a><a href="#">Export all data (Excel) <span>›</span></a></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

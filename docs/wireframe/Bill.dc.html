@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bill</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+.bar{height:56px;flex:none;background:#fff;border-bottom:1px solid #D4D4D8;display:flex;align-items:center;gap:4px;padding:0 8px 0 16px;font-size:18px;font-weight:600}
+.paper{background:#fff;border:1px solid #D4D4D8;border-radius:4px;padding:16px;font-size:13px;display:flex;flex-direction:column;gap:6px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.r{display:flex;justify-content:space-between;gap:8px}
+.hr{border-top:1px dashed #A1A1AA;margin:4px 0}
+.muted{color:#52525B;font-size:12px}
+.btn{height:52px;border:0;border-radius:10px;background:#1D4ED8;color:#fff;font:inherit;font-size:16px;font-weight:700;flex:1}
+.btn2{height:48px;border:1px solid #1D4ED8;border-radius:10px;background:#fff;color:#1D4ED8;font:inherit;font-size:14px;font-weight:600;flex:1}
+.ok{background:#DCFCE7;color:#166534;border-radius:10px;padding:10px 12px;font-weight:600;font-size:15px}
+.ph{background:#E4E4E7;border:1px dashed #A1A1AA;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#52525B;font-size:10px;font-family:system-ui,sans-serif}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#F4F4F5;font-family:system-ui,-apple-system,Roboto,sans-serif;color:#18181B;display:flex;flex-direction:column;overflow:hidden">
+<div class="bar"><span style="flex:1">Bill #1043</span><a href="#" style="font-size:14px;padding:0 8px">Done</a></div>
+<div style="flex:1;padding:12px 16px;display:flex;flex-direction:column;gap:10px;overflow:hidden">
+<div class="ok">Sale saved. Stock and money accounts updated.</div>
+<div class="paper">
+<div style="display:flex;gap:10px;align-items:center"><div class="ph" style="width:40px;height:40px">Logo</div><div><b style="font-size:15px">[Your Shop Name]</b><div class="muted">[Address] · [Phone] · Tax no. [—]</div></div></div>
+<div class="hr"></div>
+<div class="r"><span>Bill #1043</span><span>23 Oct 2026, 4:12 pm</span></div>
+<div class="r"><span>Customer: Ravi K.</span><span>Staff: Anu</span></div>
+<div class="hr"></div>
+<div class="r"><span>Galaxy A15 128GB ×1</span><span>24,999.00</span></div>
+<div class="muted">IMEI 356789104512345 · Warranty till 23 Oct 2027</div>
+<div class="r"><span>Silicone cover ×2</span><span>500.00</span></div>
+<div class="r"><span>Tempered glass ×1</span><span>150.00</span></div>
+<div class="r"><span>Discount</span><span>−649.00</span></div>
+<div class="hr"></div>
+<div class="r"><b>TOTAL</b><b>25,000.00</b></div>
+<div class="r"><span>Paid: Cash</span><span>15,000.00</span></div>
+<div class="r"><span>Paid: Bank / UPI</span><span>5,000.00</span></div>
+<div class="r"><b>Balance due</b><b>5,000.00</b></div>
+<div class="hr"></div>
+<div class="muted">[Your bill footer: return policy, warranty terms, thank-you note]</div>
+</div>
+<div style="display:flex;gap:8px"><button class="btn2">WhatsApp</button><button class="btn2">Print</button><button class="btn2">Save PDF</button></div>
+</div>
+<div style="padding:12px 16px;background:#fff;border-top:1px solid #D4D4D8;display:flex;gap:8px"><button class="btn">Start new sale</button></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

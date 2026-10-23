@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Money entry</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+.bar{height:56px;flex:none;background:#fff;border-bottom:1px solid #D4D4D8;display:flex;align-items:center;gap:4px;padding:0 8px 0 4px;font-size:18px;font-weight:600}
+.ib{width:44px;height:44px;border:0;background:none;display:flex;align-items:center;justify-content:center;color:#18181B}
+.seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:#E4E4E7;border-radius:10px;padding:3px}
+.seg button{height:40px;border:0;border-radius:8px;background:none;font:inherit;font-size:13px;color:#3F3F46}
+.seg button.on{background:#fff;color:#18181B;font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.lbl{font-size:13px;color:#3F3F46;display:block;margin-bottom:4px;font-weight:500}
+.inp{width:100%;box-sizing:border-box;height:48px;border:1px solid #A1A1AA;border-radius:8px;padding:0 12px;font:inherit;font-size:16px;background:#fff;color:#18181B}
+.big{height:64px;font-size:28px;font-weight:700;text-align:center}
+.flow{display:grid;grid-template-columns:minmax(0,1fr) 32px minmax(0,1fr);gap:6px;align-items:center}
+.box{background:#fff;border:1px solid #A1A1AA;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:2px}
+.muted{color:#52525B;font-size:13px}
+.note{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:12px;font-size:14px;color:#1E3A8A}
+.ph{background:#E4E4E7;border:1px dashed #A1A1AA;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#52525B;font-size:12px;height:48px}
+.btn{height:52px;border:0;border-radius:10px;background:#1D4ED8;color:#fff;font:inherit;font-size:16px;font-weight:700;flex:1}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#F4F4F5;font-family:system-ui,-apple-system,Roboto,sans-serif;color:#18181B;display:flex;flex-direction:column;overflow:hidden">
+<div class="bar"><button class="ib" aria-label="Back"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button><span>New money entry</span></div>
+<div style="flex:1;padding:16px;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+<div class="seg"><button>Expense</button><button>Income</button><button class="on">Transfer</button><button>Owner</button></div>
+<div><label class="lbl" for="m1">Amount</label><input class="inp big" id="m1" value="20,000.00"></div>
+<div class="flow">
+<div class="box"><span class="muted">From</span><b>Cash drawer</b><span class="muted">has 22,300.00</span></div>
+<div style="text-align:center" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></div>
+<div class="box"><span class="muted">To</span><b>Bank account</b><span class="muted">has 185,640.00</span></div>
+</div>
+<div><label class="lbl" for="m2">Note</label><input class="inp" id="m2" value="Deposited day's cash"></div>
+<div class="ph">+ Photo of deposit slip (optional)</div>
+<div class="note">A transfer only moves the shop's own money from one place to another. It is not income and not an expense, so your profit stays the same.</div>
+<div class="muted">Other tabs: <b>Expense</b> asks for a category (rent, salary, electricity, tea, transport) and which account paid. <b>Income</b> is for other income such as commission. <b>Owner</b> is money you add to or take out of the shop for yourself.</div>
+</div>
+<div style="padding:12px 16px;background:#fff;border-top:1px solid #D4D4D8;display:flex;gap:8px"><button class="btn">Save transfer</button></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

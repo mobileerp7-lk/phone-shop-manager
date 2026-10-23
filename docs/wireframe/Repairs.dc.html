@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Repair jobs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+.bar{height:56px;flex:none;background:#fff;border-bottom:1px solid #D4D4D8;display:flex;align-items:center;gap:8px;padding:0 8px 0 16px;font-size:18px;font-weight:600}
+.inp{width:100%;box-sizing:border-box;height:44px;border:1px solid #A1A1AA;border-radius:22px;padding:0 16px;font:inherit;font-size:15px;background:#fff;color:#18181B}
+.chip{display:inline-flex;align-items:center;height:32px;padding:0 10px;border-radius:16px;border:1px solid #A1A1AA;font-size:13px;background:#fff;font-family:inherit;color:#18181B;white-space:nowrap}
+.chipon{background:#1D4ED8;color:#fff;border-color:#1D4ED8}
+.job{background:#fff;border:1px solid #D4D4D8;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.r{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.muted{color:#52525B;font-size:13px}
+.st{font-size:12px;font-weight:700;border-radius:6px;padding:2px 8px}
+.s1{background:#E0E7FF;color:#3730A3}.s2{background:#FFEDD5;color:#9A3412}.s3{background:#DCFCE7;color:#166534}.s4{background:#FEE2E2;color:#991B1B}
+.nav{height:60px;flex:none;background:#fff;border-top:1px solid #D4D4D8;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+.nav a{display:flex;align-items:center;justify-content:center;font-size:13px;color:#52525B;text-decoration:none}
+.fab{position:absolute;right:16px;bottom:76px;height:52px;padding:0 20px;border-radius:26px;border:0;background:#1D4ED8;color:#fff;font:inherit;font-size:15px;font-weight:600}
+</style>
+</helmet>
+<div style="position:relative;width:390px;height:844px;box-sizing:border-box;background:#F4F4F5;font-family:system-ui,-apple-system,Roboto,sans-serif;color:#18181B;display:flex;flex-direction:column;overflow:hidden">
+<div class="bar"><span style="flex:1">Repairs</span></div>
+<div style="flex:1;padding:12px 16px;display:flex;flex-direction:column;gap:10px;overflow:hidden">
+<label style="position:absolute;left:-9999px" for="q">Search jobs</label><input class="inp" id="q" value="" placeholder="Search job no., name, phone or IMEI">
+<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="chip chipon">Open (9)</button><button class="chip">Received 3</button><button class="chip">Waiting parts 2</button><button class="chip">Ready 2</button><button class="chip">Delivered</button></div>
+<div class="job"><div class="r"><b>#R-208 · Vivo Y21</b><span class="st s3">Ready</span></div><div class="muted">Arun P. · Screen replacement</div><div class="r"><span class="muted">Promised today 6 pm</span><span>Balance 2,700.00</span></div></div>
+<div class="job"><div class="r"><b>#R-207 · Redmi Note 11</b><span class="st s2">Waiting parts</span></div><div class="muted">Fatima R. · Charging port</div><div class="r"><span class="muted">Promised 25 Oct</span><span>Balance 800.00</span></div></div>
+<div class="job"><div class="r"><b>#R-206 · iPhone 11</b><span class="st s1">Repairing</span></div><div class="muted">John D. · Battery replacement</div><div class="r"><span class="muted">Promised 24 Oct</span><span>Balance 3,500.00</span></div></div>
+<div class="job"><div class="r"><b>#R-205 · Samsung A32</b><span class="st s4">Late</span></div><div class="muted">Sana M. · Dead, not powering on</div><div class="r"><span class="muted">Promised 21 Oct (2 days late)</span><span>Estimate pending</span></div></div>
+<div class="job"><div class="r"><b>#R-204 · Oppo A57</b><span class="st s1">Received</span></div><div class="muted">Walk-in · Software install</div><div class="r"><span class="muted">Promised today</span><span>Balance 500.00</span></div></div>
+</div>
+<button class="fab">+ New job</button>
+<nav class="nav"><a href="#">Home</a><a href="#">Sell</a><a href="#">Stock</a><a href="#">Money</a><a href="#">More</a></nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

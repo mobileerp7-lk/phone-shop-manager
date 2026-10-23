@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New repair job</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+.bar{height:56px;flex:none;background:#fff;border-bottom:1px solid #D4D4D8;display:flex;align-items:center;gap:4px;padding:0 8px 0 4px;font-size:18px;font-weight:600}
+.ib{width:44px;height:44px;border:0;background:none;display:flex;align-items:center;justify-content:center;color:#18181B}
+.lbl{font-size:12px;color:#3F3F46;display:block;margin-bottom:3px;font-weight:500}
+.inp{width:100%;box-sizing:border-box;height:44px;border:1px solid #A1A1AA;border-radius:8px;padding:0 10px;font:inherit;font-size:15px;background:#fff;color:#18181B}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.sec{font-size:12px;font-weight:700;color:#3F3F46;text-transform:uppercase;letter-spacing:.04em;margin:2px 0 0}
+.chip{display:inline-flex;align-items:center;height:32px;padding:0 10px;border-radius:16px;border:1px solid #A1A1AA;font-size:13px;background:#fff;font-family:inherit;color:#18181B;white-space:nowrap}
+.chipon{background:#1D4ED8;color:#fff;border-color:#1D4ED8}
+.ph{background:#E4E4E7;border:1px dashed #A1A1AA;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#52525B;font-size:11px;flex:1}
+.btn{height:52px;border:0;border-radius:10px;background:#1D4ED8;color:#fff;font:inherit;font-size:16px;font-weight:700;flex:1}
+.muted{color:#52525B;font-size:12px}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#F4F4F5;font-family:system-ui,-apple-system,Roboto,sans-serif;color:#18181B;display:flex;flex-direction:column;overflow:hidden">
+<div class="bar"><button class="ib" aria-label="Back"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button><span>New job card #R-209</span></div>
+<div style="flex:1;padding:12px 16px;display:flex;flex-direction:column;gap:9px;overflow:hidden">
+<p class="sec">Customer</p>
+<div class="g2"><div><label class="lbl" for="j1">Name</label><input class="inp" id="j1" value="Arun P."></div><div><label class="lbl" for="j2">Phone / WhatsApp</label><input class="inp" id="j2" value="+00 99887 66554"></div></div>
+<p class="sec">Device</p>
+<div class="g2"><div><label class="lbl" for="j3">Brand and model</label><input class="inp" id="j3" value="Vivo Y21"></div><div><label class="lbl" for="j4">IMEI</label><input class="inp" id="j4" value="Scan or type"></div></div>
+<div class="g2"><div><label class="lbl" for="j5">Screen lock / pattern</label><input class="inp" id="j5" value="Draw pattern"></div><div><label class="lbl" for="j6">Came with</label><input class="inp" id="j6" value="SIM, back cover"></div></div>
+<div style="display:flex;gap:8px;height:52px"><div class="ph">+ Photo of phone condition</div></div>
+<p class="sec">Work needed</p>
+<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="chip chipon">Screen replacement</button><button class="chip">Battery</button><button class="chip">Charging port</button><button class="chip">Software</button><button class="chip">+ Other</button></div>
+<div><label class="lbl" for="j7">Problem in customer's words</label><input class="inp" id="j7" value="Screen cracked, touch not working on top"></div>
+<div class="g3"><div><label class="lbl" for="j8">Estimate</label><input class="inp" id="j8" value="3,200.00"></div><div><label class="lbl" for="j9">Advance paid</label><input class="inp" id="j9" value="500.00"></div><div><label class="lbl" for="j10">Ready by</label><input class="inp" id="j10" value="Today 6pm"></div></div>
+<div class="muted">The advance goes into the cash drawer now. The customer gets a job receipt on WhatsApp with the job number.</div>
+</div>
+<div style="padding:12px 16px;background:#fff;border-top:1px solid #D4D4D8;display:flex;gap:8px"><button class="btn">Save and send receipt</button></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
