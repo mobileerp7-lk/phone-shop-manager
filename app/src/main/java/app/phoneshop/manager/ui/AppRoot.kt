@@ -7,9 +7,13 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -50,12 +54,37 @@ fun AppRoot(repo: Repository) {
     val staff by repo.staff.collectAsState(initial = null)
     val people = staff
     val context = LocalContext.current
+    androidx.compose.runtime.LaunchedEffect(Unit) { Lang.current = app.phoneshop.manager.util.Prefs.language(context) }
     // A daily backup into the folder the owner picked, if more than a day has passed.
     androidx.compose.runtime.LaunchedEffect(settings?.backupTreeUri, settings?.setupDone) {
         val s = settings
         if (s != null && s.setupDone && s.backupTreeUri.isNotBlank() && System.currentTimeMillis() - s.lastBackupAt > 20L * 3600_000L) {
             val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { app.phoneshop.manager.util.Backup.writeToFolder(context, repo, s.backupTreeUri) }
             if (ok) repo.saveSettings(repo.currentSettings().copy(lastBackupAt = System.currentTimeMillis()))
+        }
+    }
+    // Phone-to-phone: the main phone sends its data online, a viewer phone refreshes from it.
+    androidx.compose.runtime.LaunchedEffect(settings?.useSupabase) {
+        if (settings?.useSupabase != true) return@LaunchedEffect
+        while (true) {
+            val mode = app.phoneshop.manager.util.Prefs.syncMode(context)
+            if (mode == "MAIN") {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { app.phoneshop.manager.util.CloudBackup.pushIfChanged(context, repo) }
+            } else if (mode == "VIEWER") {
+                val pulled = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    val c = app.phoneshop.manager.util.CloudBackup.load(context)
+                    val v = if (c.ready) app.phoneshop.manager.util.CloudBackup.onlineVersion(c) else null
+                    if (v != null && v != app.phoneshop.manager.util.Prefs.syncEtag(context)) {
+                        val (file, _) = app.phoneshop.manager.util.CloudBackup.download(context, c)
+                        if (file != null) {
+                            val err = file.inputStream().use { app.phoneshop.manager.util.Backup.restore(context, repo, it) }
+                            if (err == null) { app.phoneshop.manager.util.Prefs.setSyncEtag(context, v); true } else false
+                        } else false
+                    } else false
+                }
+                if (pulled) app.phoneshop.manager.util.Backup.restart(context)
+            }
+            kotlinx.coroutines.delay(3 * 60_000L)
         }
     }
     val needsLogin = people != null && settings != null && settings.setupDone &&
@@ -75,7 +104,18 @@ fun AppRoot(repo: Repository) {
         } else if (needsLogin && Session.staff == null) {
             LoginScreen(repo, people) { s -> Session.staff = s; repo.actorName = s.name }
         } else {
-            AppNav(repo, settings)
+            androidx.compose.foundation.layout.Column(Modifier.fillMaxSize()) {
+                if (app.phoneshop.manager.util.Prefs.syncMode(context) == "VIEWER") {
+                    Text(
+                        "VIEW ONLY phone: changes here are replaced by the main phone",
+                        Modifier.fillMaxWidth().background(Warn).statusBarsPadding().padding(6.dp),
+                        color = androidx.compose.ui.graphics.Color.White,
+                        fontSize = 12.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
+                }
+                Box(Modifier.weight(1f)) { AppNav(repo, settings) }
+            }
         }
     }
 }

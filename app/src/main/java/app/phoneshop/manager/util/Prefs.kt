@@ -21,4 +21,15 @@ object Prefs {
     /** The staff member who turned on fingerprint unlock on this phone, or blank. */
     fun fingerprintStaff(c: Context): String = p(c).getString("fingerprintStaff", "") ?: ""
     fun setFingerprintStaff(c: Context, id: String) = p(c).edit().putString("fingerprintStaff", id).apply()
+
+    /** OFF, MAIN (this phone sends its data online) or VIEWER (this phone only shows the main phone's data). */
+    fun syncMode(c: Context): String = p(c).getString("syncMode", "OFF") ?: "OFF"
+    fun setSyncMode(c: Context, v: String) = p(c).edit().putString("syncMode", v).apply()
+    fun syncEtag(c: Context): String = p(c).getString("syncEtag", "") ?: ""
+    fun setSyncEtag(c: Context, v: String) = p(c).edit().putString("syncEtag", v).apply()
+    fun syncMark(c: Context): Long = p(c).getLong("syncMark", 0L)
+    fun setSyncMark(c: Context, v: Long) = p(c).edit().putLong("syncMark", v).apply()
+
+    fun language(c: Context): String = p(c).getString("language", "en") ?: "en"
+    fun setLanguage(c: Context, v: String) = p(c).edit().putString("language", v).apply()
 }

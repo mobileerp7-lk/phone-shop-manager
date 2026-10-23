@@ -51,6 +51,47 @@ object CloudBackup {
         return code to bytes
     }
 
+    private fun head(url: String, headers: Map<String, String>): Pair<Int, String> {
+        val c = URL(url).openConnection() as HttpURLConnection
+        c.requestMethod = "HEAD"
+        c.connectTimeout = 20000
+        c.readTimeout = 30000
+        headers.forEach { (k, v) -> c.setRequestProperty(k, v) }
+        val code = c.responseCode
+        val tag = (c.getHeaderField("ETag") ?: c.getHeaderField("Last-Modified") ?: "") + (c.getHeaderField("Content-Length") ?: "")
+        c.disconnect()
+        return code to tag
+    }
+
+    /** A value that changes whenever the online copy is replaced; null when there is none or no internet. */
+    fun onlineVersion(c: Config): String? = runCatching {
+        val s = signIn(c)
+        val (code, tag) = head(
+            "${c.url}/storage/v1/object/authenticated/$BUCKET/${s.userId}/latest.zip",
+            mapOf("apikey" to c.key, "Authorization" to "Bearer ${s.token}"),
+        )
+        if (code == 200 && tag.isNotBlank()) tag else null
+    }.getOrNull()
+
+    /** Marks how much the shop data has changed on this phone (file sizes and times). */
+    fun localMark(context: Context, repo: Repository): Long {
+        repo.checkpoint()
+        val db = context.getDatabasePath("phoneshop.db")
+        return db.lastModified() + db.length()
+    }
+
+    /** Main phone: sends the data online when something changed since the last send. */
+    fun pushIfChanged(context: Context, repo: Repository): Boolean {
+        val c = load(context)
+        if (!c.ready) return false
+        val mark = localMark(context, repo)
+        if (mark == Prefs.syncMark(context)) return false
+        if (upload(context, repo, c) != null) return false
+        Prefs.setSyncMark(context, mark)
+        onlineVersion(c)?.let { Prefs.setSyncEtag(context, it) }
+        return true
+    }
+
     private fun signIn(c: Config): Session {
         val body = JSONObject().put("email", c.email).put("password", c.password).toString().toByteArray()
         val (code, bytes) = call(

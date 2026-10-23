@@ -5,7 +5,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,6 +21,9 @@ import app.phoneshop.manager.data.Repository
 import app.phoneshop.manager.data.ShopSettings
 import app.phoneshop.manager.util.Backup
 import app.phoneshop.manager.util.CloudBackup
+import app.phoneshop.manager.util.Prefs
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -105,6 +107,24 @@ fun CloudScreen(repo: Repository, settings: ShopSettings, onBack: () -> Unit) {
                 if (file != null) { confirmRestore = file; "Found a backup." } else err
             }
         }, Modifier.fillMaxWidth(), enabled = !busy && settings.useSupabase)
+        SectionLabel("Two or more phones")
+        GlassCard(Modifier.fillMaxWidth()) {
+            Text("One main phone, other phones only look", fontWeight = FontWeight.SemiBold)
+            Text(
+                "Only the MAIN phone should make sales and changes. It sends its data online every few minutes. " +
+                    "A VIEWER phone (for example the manager's) refreshes itself from that copy and shows stock, sales and reports. " +
+                    "Anything typed on a viewer phone is replaced at the next refresh, so never sell on a viewer. " +
+                    "This way two phones can never fight over the same stock or money.",
+                color = Muted, fontSize = 13.sp,
+            )
+        }
+        var mode by remember { mutableStateOf(Prefs.syncMode(context)) }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            GlassChip("Off", mode == "OFF") { mode = "OFF"; Prefs.setSyncMode(context, "OFF") }
+            GlassChip("Main phone", mode == "MAIN") { mode = "MAIN"; Prefs.setSyncMode(context, "MAIN"); Prefs.setSyncMark(context, 0L) }
+            GlassChip("Viewer phone", mode == "VIEWER") { mode = "VIEWER"; Prefs.setSyncMode(context, "VIEWER") }
+        }
+        if (mode != "OFF" && !settings.useSupabase) Text("Connect first (steps above) for this to work.", color = Warn, fontSize = 13.sp)
         status?.let { Text(it, color = Muted, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp)) }
     }
 

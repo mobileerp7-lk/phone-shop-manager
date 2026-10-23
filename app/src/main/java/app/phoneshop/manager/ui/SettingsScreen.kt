@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -88,6 +87,16 @@ fun SettingsScreen(
     val currency = Locales.currency(settings.currencyCode)
 
     ScreenScaffold("Settings", onBack) {
+        SectionLabel("Language")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for ((code, label) in listOf("en" to "English", "si" to "සිංහල", "ta" to "தமிழ்")) {
+                GlassChip(label, Lang.current == code) {
+                    Lang.current = code
+                    app.phoneshop.manager.util.Prefs.setLanguage(context, code)
+                }
+            }
+        }
+        Text("Sinhala and Tamil cover the main labels. Long explanations stay in English for now.", color = Muted, fontSize = 12.sp)
         SectionLabel("Look")
         GlassCard(Modifier.fillMaxWidth()) {
             Text("Colour theme", fontWeight = FontWeight.SemiBold)
