@@ -34,7 +34,17 @@ fun HomeScreen(
     settings: ShopSettings,
     onAddProduct: () -> Unit,
     onGoStock: () -> Unit,
+    onNewSale: () -> Unit,
+    onNewRepair: () -> Unit,
+    onReports: () -> Unit,
 ) {
+    val sales by repo.sales.collectAsState(initial = emptyList())
+    val lines by repo.allSaleLines.collectAsState(initial = emptyList())
+    val entries by repo.entries.collectAsState(initial = emptyList())
+    val types by repo.entryTypes.collectAsState(initial = emptyList())
+    val views by repo.accountViews.collectAsState(initial = emptyList())
+    val today = LocalDate.now()
+    val day = ReportMath.build(ReportMath.startOf(today), ReportMath.startOf(today.plusDays(1)), sales, lines, entries, types.associate { it.id to it.name })
     val products by repo.products.collectAsState(initial = emptyList())
     val stock by repo.stock.collectAsState(initial = emptyMap())
     val currency = Locales.currency(settings.currencyCode)
@@ -62,6 +72,15 @@ fun HomeScreen(
             Text("$date · amounts in ${currency.code}", color = Muted, fontSize = 14.sp)
         }
 
+        SectionLabel("Today")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            StatCard("Sales today", Money.format(day.revenue, currency), Modifier.weight(1f).riseIn(1))
+            StatCard("Profit today", Money.format(day.netProfit, currency), Modifier.weight(1f).riseIn(2), accent = if (day.netProfit >= 0) Good else Bad)
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            StatCard("Bills", day.bills.toString(), Modifier.weight(1f).riseIn(3))
+            StatCard("All shop money", Money.format(views.sumOf { it.balance }, currency), Modifier.weight(1f).riseIn(4))
+        }
         SectionLabel("Stock snapshot")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             StatCard("Products", products.size.toString(), Modifier.weight(1f).riseIn(1))
@@ -83,14 +102,10 @@ fun HomeScreen(
             ActionTile("View stock", true, Modifier.weight(1f).riseIn(6), onGoStock)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ActionTile("New sale", false, Modifier.weight(1f).riseIn(7), {})
-            ActionTile("New repair", false, Modifier.weight(1f).riseIn(8), {})
+            ActionTile("New sale", true, Modifier.weight(1f).riseIn(7), onNewSale)
+            ActionTile("New repair", true, Modifier.weight(1f).riseIn(8), onNewRepair)
         }
-        Text(
-            "Selling, repairs, money accounts and reports arrive in the next steps.",
-            color = Muted,
-            fontSize = 13.sp,
-        )
+        ActionTile("Reports", true, Modifier.fillMaxWidth().riseIn(8), onReports)
     }
 }
 

@@ -197,6 +197,11 @@ private fun AppNav(repo: Repository, settings: ShopSettings) {
             val id = entry.arguments?.getString("id") ?: ""
             JobDetailScreen(repo, settings, id, onBack = { nav.popBackStack() }, onEdit = { nav.navigate("job_form/$id") }, onOpenBill = { nav.navigate("bill/$it") })
         }
+        composable("reports") { ReportsHubScreen(onBack = { nav.popBackStack() }, onNavigate = { nav.navigate(it) }) }
+        composable("report_daily") { DailyScreen(repo, settings, onBack = { nav.popBackStack() }, onDayClose = { nav.navigate("dayclose") }) }
+        composable("report_monthly") { MonthlyScreen(repo, settings, onBack = { nav.popBackStack() }) }
+        composable("report_pl") { ProfitLossScreen(repo, settings, onBack = { nav.popBackStack() }) }
+        composable("dayclose") { DayCloseScreen(repo, settings, onBack = { nav.popBackStack() }) }
         composable("services") { ServicesScreen(repo, settings, onBack = { nav.popBackStack() }) }
         composable("categories") { CategoriesScreen(repo, onBack = { nav.popBackStack() }) }
         composable(

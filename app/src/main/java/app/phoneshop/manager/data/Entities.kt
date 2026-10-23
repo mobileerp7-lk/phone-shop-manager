@@ -318,3 +318,15 @@ data class RepairPart(
     val qty: Int,
     val costTotal: Long,
 )
+
+/** The end-of-day cash count. id is the date, like 2026-10-23. */
+@Entity(tableName = "day_closes")
+data class DayClose(
+    @PrimaryKey val id: String,
+    val expectedCash: Long,
+    val countedCash: Long,
+    val difference: Long,
+    val reason: String,
+    val leftInDrawer: Long,
+    val closedAt: Long,
+)

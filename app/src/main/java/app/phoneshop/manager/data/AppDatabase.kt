@@ -133,6 +133,18 @@ interface MoneyDao {
 }
 
 @Dao
+interface DayCloseDao {
+    @Query("SELECT * FROM day_closes")
+    fun observe(): Flow<List<DayClose>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(close: DayClose)
+
+    @Query("DELETE FROM day_closes WHERE id = :id")
+    suspend fun delete(id: String)
+}
+
+@Dao
 interface RepairDao {
     @Query("SELECT * FROM repair_jobs ORDER BY createdAt DESC")
     fun observeJobs(): Flow<List<RepairJob>>
@@ -320,8 +332,9 @@ interface ProductDao {
         PurchaseLine::class,
         RepairJob::class,
         RepairPart::class,
+        DayClose::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -334,6 +347,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun saleDao(): SaleDao
     abstract fun purchaseDao(): PurchaseDao
     abstract fun repairDao(): RepairDao
+    abstract fun dayCloseDao(): DayCloseDao
 
     companion object {
         fun build(context: Context): AppDatabase =

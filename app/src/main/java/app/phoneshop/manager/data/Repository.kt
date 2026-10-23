@@ -61,6 +61,7 @@ class Repository(private val db: AppDatabase) {
     private val saleDao = db.saleDao()
     private val purchaseDao = db.purchaseDao()
     private val repairDao = db.repairDao()
+    private val dayCloseDao = db.dayCloseDao()
 
     /** Never null once loaded; a shop that has not finished setup gets defaults. */
     val settings: Flow<ShopSettings> = settingsDao.observe().map { it ?: ShopSettings() }
@@ -158,6 +159,15 @@ class Repository(private val db: AppDatabase) {
     }
 
     suspend fun deleteEntryType(id: String) = moneyDao.softDeleteType(id, System.currentTimeMillis())
+
+    val dayCloses: Flow<List<DayClose>> = dayCloseDao.observe()
+
+    /** Locks the day's cash count. The rest of the cash can be moved to another account with one tap afterwards. */
+    suspend fun closeDay(date: String, expected: Long, counted: Long, reason: String, leftInDrawer: Long) {
+        dayCloseDao.upsert(DayClose(date, expected, counted, counted - expected, reason.trim(), leftInDrawer, System.currentTimeMillis()))
+    }
+
+    suspend fun reopenDay(date: String) = dayCloseDao.delete(date)
 
     val repairJobs: Flow<List<RepairJob>> = repairDao.observeJobs()
     val repairParts: Flow<List<RepairPart>> = repairDao.observeParts()

@@ -82,7 +82,13 @@ fun MainShell(
                 label = "tab",
             ) { t ->
                 when (t) {
-                    0 -> HomeScreen(repo, settings, onAddProduct, onGoStock = { tab = 2 })
+                    0 -> HomeScreen(
+                        repo, settings, onAddProduct,
+                        onGoStock = { tab = 2 },
+                        onNewSale = { tab = 1 },
+                        onNewRepair = { onNavigate("job_form/new") },
+                        onReports = { onNavigate("reports") },
+                    )
                     2 -> ProductListScreen(repo, settings, onAddProduct, onOpenProduct)
                     1 -> SellScreen(repo, settings, cart, onPay)
                     3 -> MoneyScreen(repo, settings, onNavigate)
@@ -92,6 +98,8 @@ fun MainShell(
                             "sell" -> tab = 1
                             "bills" -> onNavigate("bills")
                             "repairs" -> onNavigate("repairs")
+                            "reports" -> onNavigate("reports")
+                            "dayclose" -> onNavigate("dayclose")
                             "po" -> onNavigate("purchases/ORDERS")
                             "purchases" -> onNavigate("purchases/BILLS")
                             "accounts" -> tab = 3
