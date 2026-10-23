@@ -1,7 +1,7 @@
 package app.phoneshop.manager.util
 
 import android.content.Context
-import com.google.android.gms.codescanner.GmsBarcodeScanning
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 
 /** Scans a barcode with Google's built-in scanner screen. It needs no camera permission from this app. */
 object BarcodeScan {
