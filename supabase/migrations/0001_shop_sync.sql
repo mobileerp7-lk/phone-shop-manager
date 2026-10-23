@@ -123,3 +123,15 @@ create policy "shop owner adds own backups" on storage.objects for insert to aut
 drop policy if exists "shop owner replaces own backups" on storage.objects;
 create policy "shop owner replaces own backups" on storage.objects for update to authenticated
   using (bucket_id = 'backups' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- 5. Only logged-in people may call these ------------------------------------------------
+revoke execute on function public.create_shop(text) from public, anon;
+revoke execute on function public.add_member(uuid, text, text) from public, anon;
+revoke execute on function public.push_rows(uuid, text, jsonb) from public, anon;
+revoke execute on function public.is_member(uuid) from public, anon;
+revoke execute on function public.is_owner(uuid) from public, anon;
+grant execute on function public.create_shop(text) to authenticated;
+grant execute on function public.add_member(uuid, text, text) to authenticated;
+grant execute on function public.push_rows(uuid, text, jsonb) to authenticated;
+grant execute on function public.is_member(uuid) to authenticated;
+grant execute on function public.is_owner(uuid) to authenticated;
