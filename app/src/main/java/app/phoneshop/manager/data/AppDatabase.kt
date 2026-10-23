@@ -405,9 +405,9 @@ abstract class AppDatabase : RoomDatabase() {
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "phoneshop.db")
                 .addMigrations(MIGRATION_1_2)
-                // Only the early test builds (versions 2 to 9) may start fresh. From version 10 on,
+                // Only the early test builds (versions 1 to 9) may start fresh. From version 10 on,
                 // every change to the tables must ship a real migration so shop data is never lost.
-                .fallbackToDestructiveMigrationFrom(2, 3, 4, 5, 6, 7, 8, 9)
+                .fallbackToDestructiveMigrationFrom(1, 2, 3, 4, 5, 6, 7, 8, 9)
                 .build()
 
         /** Adds item codes. Products saved before this get PH-0001, PH-0002 ... so nothing is lost. */
