@@ -36,4 +36,4 @@ jobs:
           gh release create latest phone-shop-manager.apk \
             --title "Latest build" \
             --notes "Test build ${{ github.run_number }} from commit ${{ github.sha }}" \
-            --prerelease
+            --latest
