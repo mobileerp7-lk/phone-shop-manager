@@ -29,6 +29,9 @@ data class ShopSettings(
     val nextPoNumber: Int = 1,
     val nextJobNumber: Int = 1,
     val nextQuoteNumber: Int = 1,
+    /** A folder the owner picked (for example in Google Drive) for the automatic daily backup. */
+    val backupTreeUri: String = "",
+    val lastBackupAt: Long = 0L,
 )
 
 @Entity(tableName = "categories")
@@ -371,5 +374,26 @@ data class Quote(
     val total: Long,
     val discount: Long,
     val linesJson: String,
+    val createdAt: Long,
+)
+
+/** A person who uses the app. role: OWNER, MANAGER or CASHIER. A blank pinHash means no PIN is needed. */
+@Entity(tableName = "staff")
+data class Staff(
+    @PrimaryKey val id: String,
+    val name: String,
+    val role: String,
+    val pinHash: String,
+    val salt: String,
+    val createdAt: Long,
+    val deletedAt: Long? = null,
+)
+
+/** Who did what and when. Nothing is ever secretly deleted. */
+@Entity(tableName = "activity_log", indices = [Index("createdAt")])
+data class ActivityLog(
+    @PrimaryKey val id: String,
+    val who: String,
+    val text: String,
     val createdAt: Long,
 )

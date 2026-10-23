@@ -95,7 +95,7 @@ fun ProductListScreen(
                     }
                     item { GlassChip("Low stock", lowOnly) { lowOnly = !lowOnly } }
                 }
-                Text(
+                if (Session.canSeeCost) Text(
                     "Stock value at cost: ${Money.format(stockValue, currency)}",
                     color = Muted,
                     fontSize = 13.sp,
@@ -171,7 +171,7 @@ private fun ProductCard(
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(Money.format(product.sellPrice, currency), fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                if (stock != null) {
+                if (stock != null && Session.canSeeCost) {
                     val cost = if (stock.minCost == stock.maxCost) {
                         Money.format(stock.minCost, currency)
                     } else {

@@ -101,7 +101,7 @@ fun BillScreen(
         Text("The share sheet lets you send the bill on WhatsApp, print it, or save it as a PDF.", color = Muted, fontSize = 12.sp)
         GlassButton("Start new sale", onNewSale, Modifier.fillMaxWidth())
         if (!cancelled) GlassButton("Customer returns items", onReturn, Modifier.fillMaxWidth())
-        if (!cancelled) GlassButton("Cancel this bill", { cancelling = true; reason = "" }, Modifier.fillMaxWidth(), danger = true)
+        if (!cancelled && Session.canCancel) GlassButton("Cancel this bill", { cancelling = true; reason = "" }, Modifier.fillMaxWidth(), danger = true)
         error?.let { Text(it, color = Bad) }
     }
     if (cancelling) {

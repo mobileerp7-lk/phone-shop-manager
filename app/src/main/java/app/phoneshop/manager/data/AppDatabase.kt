@@ -133,6 +133,24 @@ interface MoneyDao {
 }
 
 @Dao
+interface StaffDao {
+    @Query("SELECT * FROM staff WHERE deletedAt IS NULL ORDER BY createdAt")
+    fun observeStaff(): Flow<List<Staff>>
+
+    @Query("SELECT COUNT(*) FROM staff")
+    suspend fun staffCount(): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertStaff(s: Staff)
+
+    @Query("SELECT * FROM activity_log ORDER BY createdAt DESC LIMIT 300")
+    fun observeLog(): Flow<List<ActivityLog>>
+
+    @Insert
+    suspend fun insertLog(l: ActivityLog)
+}
+
+@Dao
 interface ExtrasDao {
     @Query("SELECT * FROM sale_returns ORDER BY createdAt DESC")
     fun observeReturns(): Flow<List<SaleReturn>>
@@ -363,8 +381,10 @@ interface ProductDao {
         SaleReturn::class,
         StockAdjustment::class,
         Quote::class,
+        Staff::class,
+        ActivityLog::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -379,6 +399,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun repairDao(): RepairDao
     abstract fun dayCloseDao(): DayCloseDao
     abstract fun extrasDao(): ExtrasDao
+    abstract fun staffDao(): StaffDao
 
     companion object {
         fun build(context: Context): AppDatabase =

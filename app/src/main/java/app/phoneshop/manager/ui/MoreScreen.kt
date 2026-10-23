@@ -50,8 +50,19 @@ private val sections = listOf(
 object BuiltRoutes {
     val set = mutableSetOf(
         "products", "contacts/CUSTOMER", "contacts/SUPPLIER", "settings", "services",
-        "accounts", "money_entries", "transfers", "sell", "bills", "po", "purchases", "repairs", "reports", "dayclose", "quotes", "adjust",
+        "accounts", "money_entries", "transfers", "sell", "bills", "po", "purchases", "repairs", "reports", "dayclose", "quotes", "adjust", "staff",
     )
+}
+
+/** Cashiers do not see money, purchasing or settings; managers cannot open Settings. */
+private fun allowed(route: String): Boolean = when (route) {
+    "accounts", "money_entries", "transfers", "reports", "dayclose", "po", "purchases", "adjust", "staff", "settings" ->
+        when (route) {
+            "settings" -> Session.canManageShop
+            "staff" -> Session.canSeeMoney
+            else -> Session.canSeeMoney
+        }
+    else -> true
 }
 
 /** The "More" tab, laid out like the wireframe menu. */
@@ -67,7 +78,9 @@ fun MoreScreen(onNavigate: (String) -> Unit) {
     ) {
         Text("More", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
         var n = 0
-        for ((title, items) in sections) {
+        for ((title, all) in sections) {
+            val items = all.filter { allowed(it.route) }
+            if (items.isEmpty()) continue
             SectionLabel(title)
             for (item in items) {
                 val ready = item.route in BuiltRoutes.set

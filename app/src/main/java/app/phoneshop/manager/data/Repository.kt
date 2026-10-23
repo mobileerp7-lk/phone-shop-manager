@@ -4,6 +4,9 @@ import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import app.phoneshop.manager.util.Locales
+import app.phoneshop.manager.util.Money
+import java.security.MessageDigest
 import java.util.UUID
 
 data class StockInfo(val qty: Int, val minCost: Long, val maxCost: Long, val totalCost: Long)
@@ -63,6 +66,42 @@ class Repository(private val db: AppDatabase) {
     private val repairDao = db.repairDao()
     private val dayCloseDao = db.dayCloseDao()
     private val extrasDao = db.extrasDao()
+    private val staffDao = db.staffDao()
+
+    /** Name written in the activity log. The screens set this to the person who is signed in. */
+    @Volatile var actorName: String = "Owner"
+
+    val staff: Flow<List<Staff>> = staffDao.observeStaff()
+    val activityLog: Flow<List<ActivityLog>> = staffDao.observeLog()
+
+    private suspend fun log(text: String) =
+        staffDao.insertLog(ActivityLog(UUID.randomUUID().toString(), actorName, text, System.currentTimeMillis()))
+
+    private fun fmt(minor: Long, s: ShopSettings) = Money.format(minor, Locales.currency(s.currencyCode))
+
+    private fun hashPin(salt: String, pin: String): String =
+        MessageDigest.getInstance("SHA-256").digest((salt + pin).toByteArray()).joinToString("") { "%02x".format(it) }
+
+    fun verifyPin(s: Staff, pin: String): Boolean = s.pinHash.isEmpty() || hashPin(s.salt, pin) == s.pinHash
+
+    /** pin null keeps the old PIN, an empty pin removes it. */
+    suspend fun saveStaff(existing: Staff?, name: String, role: String, pin: String?) {
+        val salt = existing?.salt?.ifEmpty { null } ?: UUID.randomUUID().toString().take(8)
+        val hash = when {
+            pin == null -> existing?.pinHash ?: ""
+            pin.isEmpty() -> ""
+            else -> hashPin(salt, pin)
+        }
+        staffDao.upsertStaff(
+            Staff(existing?.id ?: UUID.randomUUID().toString(), name.trim(), role, hash, salt, existing?.createdAt ?: System.currentTimeMillis())
+        )
+        log(if (existing == null) "added staff ${name.trim()} ($role)" else "changed staff ${name.trim()}")
+    }
+
+    suspend fun removeStaff(s: Staff) {
+        staffDao.upsertStaff(s.copy(deletedAt = System.currentTimeMillis()))
+        log("removed staff ${s.name}")
+    }
 
     /** Never null once loaded; a shop that has not finished setup gets defaults. */
     val settings: Flow<ShopSettings> = settingsDao.observe().map { it ?: ShopSettings() }
@@ -104,12 +143,14 @@ class Repository(private val db: AppDatabase) {
     suspend fun recordExpense(accountId: String, typeId: String?, amount: Long, note: String): String? {
         if (amount <= 0) return "Enter an amount above zero."
         moneyDao.insertEntry(newEntry("EXPENSE", accountId, -amount, typeId, note, UUID.randomUUID().toString()))
+        log("recorded an expense of ${fmt(amount, settingsDao.get() ?: ShopSettings())} ${note.trim()}")
         return null
     }
 
     suspend fun recordIncome(accountId: String, typeId: String?, amount: Long, note: String): String? {
         if (amount <= 0) return "Enter an amount above zero."
         moneyDao.insertEntry(newEntry("INCOME", accountId, amount, typeId, note, UUID.randomUUID().toString()))
+        log("recorded income of ${fmt(amount, settingsDao.get() ?: ShopSettings())} ${note.trim()}")
         return null
     }
 
@@ -128,12 +169,15 @@ class Repository(private val db: AppDatabase) {
         val group = UUID.randomUUID().toString()
         moneyDao.insertEntry(newEntry("TRANSFER", fromId, -amount, null, note, group))
         moneyDao.insertEntry(newEntry("TRANSFER", toId, amount, null, note, group))
+        log("moved ${fmt(amount, settingsDao.get() ?: ShopSettings())} between accounts")
         null
     }
 
     /** Cancels an entry (and its other half for transfers). It stays in the records with the reason. */
-    suspend fun voidEntry(groupId: String, reason: String) =
+    suspend fun voidEntry(groupId: String, reason: String) {
         moneyDao.voidGroup(groupId, System.currentTimeMillis(), reason.trim())
+        log("cancelled a money entry. Reason: ${reason.trim()}")
+    }
 
     suspend fun saveAccount(existing: Account?, name: String, type: String, detail: String, opening: Long) {
         moneyDao.upsertAccount(
@@ -162,6 +206,15 @@ class Repository(private val db: AppDatabase) {
     suspend fun deleteEntryType(id: String) = moneyDao.softDeleteType(id, System.currentTimeMillis())
 
     val dayCloses: Flow<List<DayClose>> = dayCloseDao.observe()
+
+    /** Writes everything still waiting in the database log into the main file, so a backup copy is complete. */
+    fun checkpoint() {
+        db.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(FULL)").use { it.moveToFirst() }
+    }
+
+    fun schemaVersion(): Int = db.openHelper.writableDatabase.version
+
+    fun close() = db.close()
     val saleReturns: Flow<List<SaleReturn>> = extrasDao.observeReturns()
     val adjustments: Flow<List<StockAdjustment>> = extrasDao.observeAdjustments()
     val quotes: Flow<List<Quote>> = extrasDao.observeQuotes()
@@ -239,6 +292,7 @@ class Repository(private val db: AppDatabase) {
                 insertBatch(line.productId, qty, if (qty > 0) restoredCost / qty else 0L, now)
             }
         }
+        log("took back ${line.name} ×$qty from Bill #${sale.billNo}")
         extrasDao.insertReturn(SaleReturn(UUID.randomUUID().toString(), saleId, lineId, line.name, qty, refund, restoredCost, refundMode, sale.customerId, reason.trim(), now))
         if (refundMode == "CASH" && accountId != null && refund > 0) {
             moneyDao.insertEntry(
@@ -370,7 +424,7 @@ class Repository(private val db: AppDatabase) {
         val saleId = UUID.randomUUID().toString()
         val label = "Repair #R-${job.jobNo.toString().padStart(3, '0')}: ${job.work.ifBlank { job.device }}"
         saleDao.upsertSale(
-            Sale(saleId, settings.nextBillNumber, job.customerId, charge, 0L, 0L, charge, paid, due, null, "DONE", "", "Owner", now)
+            Sale(saleId, settings.nextBillNumber, job.customerId, charge, 0L, 0L, charge, paid, due, null, "DONE", "", actorName, now)
         )
         saleDao.insertLine(SaleLine(UUID.randomUUID().toString(), saleId, "SERVICE", null, label, 1, charge, charge, partsCost, null, job.imei, 0))
         for (p in payments.filter { it.amount > 0 }) {
@@ -381,6 +435,7 @@ class Repository(private val db: AppDatabase) {
         }
         settingsDao.save(settings.copy(nextBillNumber = settings.nextBillNumber + 1))
         repairDao.upsertJob(job.copy(status = "DELIVERED", charge = charge, warrantyDays = warrantyDays, saleId = saleId, deliveredAt = now))
+        log("delivered repair #${label.substringAfter('#').substringBefore(':')} (${fmt(charge, settings)})")
         null
     }
 
@@ -512,6 +567,7 @@ class Repository(private val db: AppDatabase) {
             ).copy(contactId = contactId, refType = "CONTACT", refId = contactId)
         )
         contactDao.get(contactId)?.let { contactDao.upsert(it.copy(promiseDate = newPromise, updatedAt = System.currentTimeMillis())) }
+        log((if (supplier) "paid supplier " else "collected ") + fmt(amount, settingsDao.get() ?: ShopSettings()) + (contactDao.get(contactId)?.let { " (${it.name})" } ?: ""))
         null
     }
 
@@ -580,7 +636,7 @@ class Repository(private val db: AppDatabase) {
             Sale(
                 id = saleId, billNo = settings.nextBillNumber, customerId = customerId, subtotal = subtotal,
                 discount = discount, taxAmount = tax, total = total, paid = paid, due = due, promiseDate = promiseDate,
-                status = "DONE", cancelReason = "", staffName = "Owner", createdAt = now,
+                status = "DONE", cancelReason = "", staffName = actorName, createdAt = now,
             )
         )
         saved.forEach { saleDao.insertLine(it) }
@@ -591,6 +647,7 @@ class Repository(private val db: AppDatabase) {
             )
         }
         settingsDao.save(settings.copy(nextBillNumber = settings.nextBillNumber + 1))
+        log("made Bill #${settings.nextBillNumber} (${fmt(total, settings)}${if (due > 0) ", ${fmt(due, settings)} on credit" else ""})")
         if (customerId != null && due > 0 && promiseDate != null) {
             contactDao.get(customerId)?.let { contactDao.upsert(it.copy(promiseDate = promiseDate, updatedAt = now)) }
         }
@@ -615,6 +672,7 @@ class Repository(private val db: AppDatabase) {
         }
         moneyDao.voidGroup(saleId, now, "Bill #${sale.billNo} cancelled: ${reason.trim()}")
         saleDao.upsertSale(sale.copy(status = "CANCELLED", cancelReason = reason.trim(), cancelledAt = now))
+        log("cancelled Bill #${sale.billNo}. Reason: ${reason.trim()}")
         null
     }
 
@@ -720,11 +778,14 @@ class Repository(private val db: AppDatabase) {
 
     suspend fun saveSettings(settings: ShopSettings) = settingsDao.save(settings)
 
+    suspend fun currentSettings(): ShopSettings = settingsDao.get() ?: ShopSettings()
+
     suspend fun seedIfEmpty() {
         if (categoryDao.count() == 0) {
             categoryDao.insertCategories(SeedData.categories)
             categoryDao.insertFields(SeedData.fields)
         }
+        if (staffDao.staffCount() == 0) staffDao.upsertStaff(Staff("staff_owner", "Owner", "OWNER", "", "", System.currentTimeMillis()))
         if (moneyDao.accountCount() == 0) SeedData.accounts.forEach { moneyDao.upsertAccount(it) }
         if (moneyDao.typeCount() == 0) SeedData.entryTypes.forEach { moneyDao.upsertType(it) }
     }
@@ -834,6 +895,7 @@ class Repository(private val db: AppDatabase) {
         productDao.getProduct(productId)?.let {
             productDao.upsertProduct(it.copy(updatedAt = now))
         }
+        log("added stock to a product")
         null
     }
 

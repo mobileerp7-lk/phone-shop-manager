@@ -109,9 +109,9 @@ fun ProductDetailScreen(
                     costs.min() == costs.max() -> Money.format(costs.min(), currency)
                     else -> "${Money.format(costs.min(), currency)} - ${Money.format(costs.max(), currency)}"
                 }
-                Stat("Buying cost", costText, Modifier.weight(1f).riseIn(2))
+                if (Session.canSeeCost) Stat("Buying cost", costText, Modifier.weight(1f).riseIn(2))
             }
-            Stat("Stock value at cost", Money.format(value, currency), Modifier.fillMaxWidth().riseIn(3))
+            if (Session.canSeeCost) Stat("Stock value at cost", Money.format(value, currency), Modifier.fillMaxWidth().riseIn(3))
 
             run {
                 SectionLabel("Details")
@@ -136,7 +136,7 @@ fun ProductDetailScreen(
                                 Text("Added ${date(u.createdAt)}", color = Muted, fontSize = 12.sp)
                             }
                             Column(horizontalAlignment = Alignment.End) {
-                                Text(Money.format(u.unitCost, currency), fontWeight = FontWeight.Bold)
+                                if (Session.canSeeCost) Text(Money.format(u.unitCost, currency), fontWeight = FontWeight.Bold)
                                 if (u.status == "IN_STOCK") StatusPill("In stock", Color(0xFFDCFCE7), Good)
                                 else StatusPill("Sold", Color(0xFFE4E4E7), Muted)
                             }
@@ -153,7 +153,7 @@ fun ProductDetailScreen(
                                 Text("${b.remaining} left of ${b.qty}", fontWeight = FontWeight.SemiBold)
                                 Text("Bought ${date(b.createdAt)}", color = Muted, fontSize = 12.sp)
                             }
-                            Text("${Money.format(b.unitCost, currency)} each", fontWeight = FontWeight.Bold)
+                            if (Session.canSeeCost) Text("${Money.format(b.unitCost, currency)} each", fontWeight = FontWeight.Bold)
                         }
                     }
                 }

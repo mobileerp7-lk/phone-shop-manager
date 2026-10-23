@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
 import android.app.Activity
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -46,11 +47,33 @@ fun AppRoot(repo: Repository) {
             controller.isAppearanceLightNavigationBars = !theme.dark
         }
     }
+    val staff by repo.staff.collectAsState(initial = null)
+    val people = staff
+    val context = LocalContext.current
+    // A daily backup into the folder the owner picked, if more than a day has passed.
+    androidx.compose.runtime.LaunchedEffect(settings?.backupTreeUri, settings?.setupDone) {
+        val s = settings
+        if (s != null && s.setupDone && s.backupTreeUri.isNotBlank() && System.currentTimeMillis() - s.lastBackupAt > 20L * 3600_000L) {
+            val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { app.phoneshop.manager.util.Backup.writeToFolder(context, repo, s.backupTreeUri) }
+            if (ok) repo.saveSettings(repo.currentSettings().copy(lastBackupAt = System.currentTimeMillis()))
+        }
+    }
+    val needsLogin = people != null && settings != null && settings.setupDone &&
+        (people.size > 1 || people.any { it.pinHash.isNotEmpty() })
+    // With one person and no PIN the app opens straight away as the owner.
+    androidx.compose.runtime.LaunchedEffect(people, needsLogin) {
+        if (people != null && !needsLogin && Session.staff == null) {
+            Session.staff = people.firstOrNull()
+            repo.actorName = people.firstOrNull()?.name ?: "Owner"
+        }
+    }
     GradientBackground {
-        if (settings == null) {
+        if (settings == null || people == null || (Session.staff == null && !needsLogin && settings.setupDone)) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("Phone Shop Manager", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Indigo)
             }
+        } else if (needsLogin && Session.staff == null) {
+            LoginScreen(repo, people) { s -> Session.staff = s; repo.actorName = s.name }
         } else {
             AppNav(repo, settings)
         }
@@ -216,6 +239,7 @@ private fun AppNav(repo: Repository, settings: ShopSettings) {
         composable("report_monthly") { MonthlyScreen(repo, settings, onBack = { nav.popBackStack() }) }
         composable("report_pl") { ProfitLossScreen(repo, settings, onBack = { nav.popBackStack() }) }
         composable("dayclose") { DayCloseScreen(repo, settings, onBack = { nav.popBackStack() }) }
+        composable("staff") { StaffScreen(repo, onBack = { nav.popBackStack() }) }
         composable("services") { ServicesScreen(repo, settings, onBack = { nav.popBackStack() }) }
         composable("categories") { CategoriesScreen(repo, onBack = { nav.popBackStack() }) }
         composable(

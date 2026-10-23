@@ -77,11 +77,13 @@ fun HomeScreen(
         SectionLabel("Today")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             StatCard("Sales today", Money.format(day.revenue, currency), Modifier.weight(1f).riseIn(1))
-            StatCard("Profit today", Money.format(day.netProfit, currency), Modifier.weight(1f).riseIn(2), accent = if (day.netProfit >= 0) Good else Bad)
+            if (Session.canSeeCost) StatCard("Profit today", Money.format(day.netProfit, currency), Modifier.weight(1f).riseIn(2), accent = if (day.netProfit >= 0) Good else Bad)
+            else StatCard("Bills", day.bills.toString(), Modifier.weight(1f).riseIn(2))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             StatCard("Bills", day.bills.toString(), Modifier.weight(1f).riseIn(3))
-            StatCard("All shop money", Money.format(views.sumOf { it.balance }, currency), Modifier.weight(1f).riseIn(4))
+            if (Session.canSeeMoney) StatCard("All shop money", Money.format(views.sumOf { it.balance }, currency), Modifier.weight(1f).riseIn(4))
+            else StatCard("Low stock", lowStock.toString(), Modifier.weight(1f).riseIn(4), accent = if (lowStock > 0) Warn else Good)
         }
         SectionLabel("Stock snapshot")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -89,7 +91,8 @@ fun HomeScreen(
             StatCard("Items in stock", itemsInStock.toString(), Modifier.weight(1f).riseIn(2))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            StatCard("Stock value at cost", Money.format(stockValue, currency), Modifier.weight(1f).riseIn(3))
+            if (Session.canSeeCost) StatCard("Stock value at cost", Money.format(stockValue, currency), Modifier.weight(1f).riseIn(3))
+            else StatCard("Items in stock", itemsInStock.toString(), Modifier.weight(1f).riseIn(3))
             StatCard(
                 "Low stock",
                 lowStock.toString(),
@@ -107,7 +110,7 @@ fun HomeScreen(
             ActionTile("New sale", true, Modifier.weight(1f).riseIn(7), onNewSale)
             ActionTile("New repair", true, Modifier.weight(1f).riseIn(8), onNewRepair)
         }
-        ActionTile("Reports", true, Modifier.fillMaxWidth().riseIn(8), onReports)
+        if (Session.canSeeMoney) ActionTile("Reports", true, Modifier.fillMaxWidth().riseIn(8), onReports)
     }
 }
 

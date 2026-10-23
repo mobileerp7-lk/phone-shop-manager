@@ -91,7 +91,7 @@ fun MainShell(
                     )
                     2 -> ProductListScreen(repo, settings, onAddProduct, onOpenProduct)
                     1 -> SellScreen(repo, settings, cart, onPay)
-                    3 -> MoneyScreen(repo, settings, onNavigate)
+                    3 -> if (Session.canSeeMoney) MoneyScreen(repo, settings, onNavigate) else ComingSoon("Money")
                     4 -> MoreScreen { route ->
                         when (route) {
                             "products" -> tab = 2
