@@ -32,6 +32,24 @@ interface CategoryDao {
     @Query("SELECT * FROM category_fields ORDER BY sortOrder")
     fun observeFields(): Flow<List<CategoryField>>
 
+    @Query("SELECT * FROM categories WHERE id = :id")
+    suspend fun getCategory(id: String): Category?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertCategory(category: Category)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertField(field: CategoryField)
+
+    @Query("DELETE FROM category_fields WHERE id = :id")
+    suspend fun deleteField(id: String)
+
+    @Query("UPDATE categories SET deletedAt = :time WHERE id = :id")
+    suspend fun softDeleteCategory(id: String, time: Long)
+
+    @Query("SELECT COUNT(*) FROM products WHERE categoryId = :id AND deletedAt IS NULL")
+    suspend fun productCount(id: String): Int
+
     @Query("SELECT COUNT(*) FROM categories")
     suspend fun count(): Int
 
@@ -40,6 +58,36 @@ interface CategoryDao {
 
     @Insert
     suspend fun insertFields(items: List<CategoryField>)
+}
+
+@Dao
+interface ServiceDao {
+    @Query("SELECT * FROM services WHERE deletedAt IS NULL ORDER BY name COLLATE NOCASE")
+    fun observe(): Flow<List<Service>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(service: Service)
+
+    @Query("UPDATE services SET deletedAt = :time WHERE id = :id")
+    suspend fun softDelete(id: String, time: Long)
+}
+
+@Dao
+interface ContactDao {
+    @Query("SELECT * FROM contacts WHERE deletedAt IS NULL ORDER BY name COLLATE NOCASE")
+    fun observeAll(): Flow<List<Contact>>
+
+    @Query("SELECT * FROM contacts WHERE id = :id")
+    fun observe(id: String): Flow<Contact?>
+
+    @Query("SELECT * FROM contacts WHERE id = :id")
+    suspend fun get(id: String): Contact?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(contact: Contact)
+
+    @Query("UPDATE contacts SET deletedAt = :time, updatedAt = :time WHERE id = :id")
+    suspend fun softDelete(id: String, time: Long)
 }
 
 @Dao
@@ -109,19 +157,26 @@ interface ProductDao {
         Product::class,
         StockUnit::class,
         StockBatch::class,
+        Service::class,
+        Contact::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun settingsDao(): SettingsDao
     abstract fun categoryDao(): CategoryDao
     abstract fun productDao(): ProductDao
+    abstract fun serviceDao(): ServiceDao
+    abstract fun contactDao(): ContactDao
 
     companion object {
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "phoneshop.db")
                 .addMigrations(MIGRATION_1_2)
+                // Building phase only: test builds may clear test data when the layout grows.
+                // Before the public release this is removed and real migrations are required.
+                .fallbackToDestructiveMigration()
                 .build()
 
         /** Adds item codes. Products saved before this get PH-0001, PH-0002 ... so nothing is lost. */

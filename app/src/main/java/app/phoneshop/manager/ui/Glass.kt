@@ -37,6 +37,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,33 +63,49 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardOptions
 import kotlinx.coroutines.delay
 
-val Indigo = Color(0xFF4F46E5)
-val Violet = Color(0xFF7C3AED)
-val Teal = Color(0xFF0891B2)
-val Ink = Color(0xFF18181B)
-val Muted = Color(0xFF52525B)
-val Good = Color(0xFF15803D)
-val Warn = Color(0xFF9A3412)
-val Bad = Color(0xFFB91C1C)
+val Indigo: Color get() = Themes.current.accent
+val Violet: Color get() = Themes.current.middle
+val Teal: Color get() = Themes.current.end
+val Ink: Color get() = if (Themes.current.dark) Color(0xFFF4F4F5) else Color(0xFF18181B)
+val Muted: Color get() = if (Themes.current.dark) Color(0xFFA1A1AA) else Color(0xFF52525B)
+val Good: Color get() = if (Themes.current.dark) Color(0xFF4ADE80) else Color(0xFF15803D)
+val Warn: Color get() = if (Themes.current.dark) Color(0xFFFB923C) else Color(0xFF9A3412)
+val Bad: Color get() = if (Themes.current.dark) Color(0xFFF87171) else Color(0xFFB91C1C)
 
-val BrandBrush = Brush.linearGradient(listOf(Indigo, Violet, Teal))
+/** Fill of glass surfaces: white on light themes, deep slate on the dark theme. */
+val GlassBase: Color get() = if (Themes.current.dark) Color(0xFF1E293B) else Color.White
+val GlassEdge: Color get() = if (Themes.current.dark) Color.White.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.8f)
+
+val BrandBrush: Brush get() = Brush.linearGradient(listOf(Themes.current.start, Themes.current.middle, Themes.current.end))
 
 /** True when the phone has animations turned off; the app then skips its own motion. */
 val LocalReduceMotion = staticCompositionLocalOf { false }
 
 @Composable
 fun PhoneShopTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = lightColorScheme(
-            primary = Indigo,
+    val t = Themes.current
+    val scheme = if (t.dark) {
+        darkColorScheme(
+            primary = t.accent,
+            onPrimary = Color(0xFF0F172A),
+            secondary = t.middle,
+            background = Color.Transparent,
+            surface = GlassBase,
+            onSurface = Ink,
+            surfaceContainerHigh = GlassBase,
+        )
+    } else {
+        lightColorScheme(
+            primary = t.accent,
             onPrimary = Color.White,
-            secondary = Violet,
+            secondary = t.middle,
             background = Color.Transparent,
             surface = Color.White,
             onSurface = Ink,
-        ),
-        content = content,
-    )
+            surfaceContainerHigh = Color.White,
+        )
+    }
+    MaterialTheme(colorScheme = scheme, content = content)
 }
 
 @Composable
@@ -97,14 +114,14 @@ fun GradientBackground(modifier: Modifier = Modifier, content: @Composable BoxSc
         modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(listOf(Color(0xFFEEF2FF), Color(0xFFF5F3FF), Color(0xFFECFEFF)))
+                Brush.verticalGradient(listOf(Themes.current.bgTop, Themes.current.bgMiddle, Themes.current.bgBottom))
             )
             .drawBehind {
                 val topCenter = Offset(size.width, 0f)
                 val bottomCenter = Offset(0f, size.height)
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(Color(0x66A5B4FC), Color.Transparent),
+                        colors = listOf(Themes.current.glowA, Color.Transparent),
                         center = topCenter,
                         radius = size.width * 0.9f,
                     ),
@@ -113,7 +130,7 @@ fun GradientBackground(modifier: Modifier = Modifier, content: @Composable BoxSc
                 )
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(Color(0x5967E8F9), Color.Transparent),
+                        colors = listOf(Themes.current.glowB, Color.Transparent),
                         center = bottomCenter,
                         radius = size.width,
                     ),
@@ -135,8 +152,8 @@ fun GlassCard(
     val shape = RoundedCornerShape(16.dp)
     var m = modifier
         .shadow(6.dp, shape, ambientColor = Indigo.copy(alpha = 0.15f), spotColor = Indigo.copy(alpha = 0.2f))
-        .background(Color.White.copy(alpha = 0.58f), shape)
-        .border(1.dp, Color.White.copy(alpha = 0.8f), shape)
+        .background(GlassBase.copy(alpha = 0.58f), shape)
+        .border(1.dp, GlassEdge, shape)
     if (onClick != null) m = m.clickable(onClick = onClick)
     Column(m.padding(14.dp), content = content)
 }
@@ -214,7 +231,7 @@ fun GlassButton(
                 scaleY = scale
                 alpha = if (enabled) 1f else 0.5f
             }
-            .background(Color.White.copy(alpha = 0.6f), shape)
+            .background(GlassBase.copy(alpha = 0.6f), shape)
             .border(BorderStroke(1.dp, tint.copy(alpha = 0.5f)), shape)
             .clickable(
                 interactionSource = source,
@@ -238,8 +255,8 @@ fun GlassChip(text: String, selected: Boolean, onClick: () -> Unit) {
         base.background(BrandBrush, shape)
     } else {
         base
-            .background(Color.White.copy(alpha = 0.6f), shape)
-            .border(1.dp, Color.White.copy(alpha = 0.85f), shape)
+            .background(GlassBase.copy(alpha = 0.6f), shape)
+            .border(1.dp, GlassEdge, shape)
     }
     Box(
         styled
@@ -276,8 +293,8 @@ fun GlassField(
         keyboardOptions = KeyboardOptions(keyboardType = keyboard),
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = Color.White.copy(alpha = 0.75f),
-            unfocusedContainerColor = Color.White.copy(alpha = 0.6f),
+            focusedContainerColor = GlassBase.copy(alpha = 0.75f),
+            unfocusedContainerColor = GlassBase.copy(alpha = 0.6f),
             focusedBorderColor = Indigo,
             unfocusedBorderColor = Indigo.copy(alpha = 0.25f),
         ),
@@ -339,7 +356,7 @@ fun GlassTopBar(
     Row(
         Modifier
             .fillMaxWidth()
-            .background(Color.White.copy(alpha = 0.62f))
+            .background(GlassBase.copy(alpha = 0.62f))
             .statusBarsPadding()
             .heightIn(min = 56.dp)
             .padding(horizontal = 8.dp),
@@ -377,7 +394,7 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
         modifier.padding(top = 6.dp),
         fontSize = 12.sp,
         fontWeight = FontWeight.Bold,
-        color = Color(0xFF3F3F46),
+        color = Muted,
         letterSpacing = 0.5.sp,
     )
 }

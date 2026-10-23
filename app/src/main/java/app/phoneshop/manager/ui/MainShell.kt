@@ -59,6 +59,7 @@ fun MainShell(
     settings: ShopSettings,
     onAddProduct: () -> Unit,
     onOpenProduct: (String) -> Unit,
+    onNavigate: (String) -> Unit,
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val reduce = LocalReduceMotion.current
@@ -78,6 +79,13 @@ fun MainShell(
                 when (t) {
                     0 -> HomeScreen(repo, settings, onAddProduct, onGoStock = { tab = 2 })
                     2 -> ProductListScreen(repo, settings, onAddProduct, onOpenProduct)
+                    4 -> MoreScreen { route ->
+                        when (route) {
+                            "products" -> tab = 2
+                            "sell" -> tab = 1
+                            else -> onNavigate(route)
+                        }
+                    }
                     else -> ComingSoon(tabs[t].label)
                 }
             }
@@ -91,8 +99,8 @@ private fun BottomBar(selected: Int, onSelect: (Int) -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .background(Color.White.copy(alpha = 0.72f))
-            .border(1.dp, Color.White.copy(alpha = 0.8f))
+            .background(GlassBase.copy(alpha = 0.72f))
+            .border(1.dp, GlassEdge)
             .navigationBarsPadding()
     ) {
         tabs.forEachIndexed { index, item ->

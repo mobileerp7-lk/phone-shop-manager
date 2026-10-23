@@ -285,7 +285,7 @@ fun ProductFormScreen(
         Row(
             Modifier
                 .fillMaxWidth()
-                .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f))
+                .background(GlassBase.copy(alpha = 0.7f))
                 .navigationBarsPadding()
                 .padding(12.dp)
         ) {

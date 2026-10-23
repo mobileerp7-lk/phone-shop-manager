@@ -19,12 +19,79 @@ class Repository(private val db: AppDatabase) {
     private val settingsDao = db.settingsDao()
     private val categoryDao = db.categoryDao()
     private val productDao = db.productDao()
+    private val serviceDao = db.serviceDao()
+    private val contactDao = db.contactDao()
 
     /** Never null once loaded; a shop that has not finished setup gets defaults. */
     val settings: Flow<ShopSettings> = settingsDao.observe().map { it ?: ShopSettings() }
     val categories: Flow<List<Category>> = categoryDao.observeCategories()
     val fields: Flow<List<CategoryField>> = categoryDao.observeFields()
     val products: Flow<List<Product>> = productDao.observeProducts()
+    val services: Flow<List<Service>> = serviceDao.observe()
+    val contacts: Flow<List<Contact>> = contactDao.observeAll()
+
+    fun observeContact(id: String): Flow<Contact?> = contactDao.observe(id)
+    suspend fun getContact(id: String): Contact? = contactDao.get(id)
+
+    suspend fun saveService(existing: Service?, name: String, price: Long, note: String) {
+        serviceDao.upsert(
+            Service(
+                id = existing?.id ?: UUID.randomUUID().toString(),
+                name = name.trim(),
+                price = price,
+                note = note.trim(),
+                createdAt = existing?.createdAt ?: System.currentTimeMillis(),
+            )
+        )
+    }
+
+    suspend fun deleteService(id: String) = serviceDao.softDelete(id, System.currentTimeMillis())
+
+    suspend fun saveContact(
+        existing: Contact?,
+        kind: String,
+        name: String,
+        phone: String,
+        address: String,
+        note: String,
+        openingBalance: Long,
+    ): String {
+        val now = System.currentTimeMillis()
+        val id = existing?.id ?: UUID.randomUUID().toString()
+        contactDao.upsert(
+            Contact(
+                id = id, kind = kind, name = name.trim(), phone = phone.trim(), address = address.trim(),
+                note = note.trim(), openingBalance = openingBalance,
+                createdAt = existing?.createdAt ?: now, updatedAt = now,
+            )
+        )
+        return id
+    }
+
+    suspend fun deleteContact(id: String) = contactDao.softDelete(id, System.currentTimeMillis())
+
+    // Categories and their questions (Settings > Categories and questions)
+    suspend fun saveCategory(existing: Category?, name: String, tracksImei: Boolean, hasWarranty: Boolean): String {
+        val id = existing?.id ?: "cat_" + UUID.randomUUID().toString().take(8)
+        val order = existing?.sortOrder ?: (System.currentTimeMillis() / 1000).toInt()
+        categoryDao.upsertCategory(Category(id, name.trim(), tracksImei, hasWarranty, order))
+        return id
+    }
+
+    /** Returns an error message, or null when the category was removed. */
+    suspend fun deleteCategory(id: String): String? {
+        if (categoryDao.productCount(id) > 0) return "This category still has products. Move or delete them first."
+        categoryDao.softDeleteCategory(id, System.currentTimeMillis())
+        return null
+    }
+
+    suspend fun saveField(existing: CategoryField?, categoryId: String, label: String, type: String, options: String, required: Boolean, order: Int) {
+        categoryDao.upsertField(
+            CategoryField(existing?.id ?: "f_" + UUID.randomUUID().toString().take(8), categoryId, label.trim(), type, options.trim(), required, order)
+        )
+    }
+
+    suspend fun deleteField(id: String) = categoryDao.deleteField(id)
 
     val stock: Flow<Map<String, StockInfo>> =
         combine(productDao.observeUnitStock(), productDao.observeBatchStock()) { units, batches ->

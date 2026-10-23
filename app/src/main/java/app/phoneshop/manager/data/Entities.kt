@@ -21,6 +21,8 @@ data class ShopSettings(
     /** Item codes look like PH-0001. The prefix is the shop's choice. */
     val itemCodePrefix: String = "PH",
     val nextItemNumber: Int = 1,
+    /** Colour theme id; blank means the app default. */
+    val themeId: String = "",
 )
 
 @Entity(tableName = "categories")
@@ -102,4 +104,32 @@ data class StockRow(
     val minCost: Long,
     val maxCost: Long,
     val totalCost: Long,
+)
+
+/** Something the shop does for a fee (repair, software install, unlocking ...). */
+@Entity(tableName = "services")
+data class Service(
+    @PrimaryKey val id: String,
+    val name: String,
+    /** Usual charge in minor units; can be changed on each bill. */
+    val price: Long,
+    val note: String,
+    val createdAt: Long,
+    val deletedAt: Long? = null,
+)
+
+/** A customer or a supplier. kind is CUSTOMER or SUPPLIER. */
+@Entity(tableName = "contacts", indices = [Index("kind")])
+data class Contact(
+    @PrimaryKey val id: String,
+    val kind: String,
+    val name: String,
+    val phone: String,
+    val address: String,
+    val note: String,
+    /** Money already owed when the contact was added: customer owes the shop, or shop owes the supplier. */
+    val openingBalance: Long,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
 )

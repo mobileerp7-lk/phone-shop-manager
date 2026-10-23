@@ -18,6 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
+import android.app.Activity
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -29,6 +33,18 @@ import app.phoneshop.manager.data.ShopSettings
 fun AppRoot(repo: Repository) {
     val loaded by repo.settings.collectAsState(initial = null)
     val settings = loaded
+    // The chosen colour theme applies to the whole app and to the phone's status bar icons.
+    val theme = Themes.byId(settings?.themeId.orEmpty())
+    SideEffect { Themes.current = theme }
+    val view = LocalView.current
+    SideEffect {
+        val window = (view.context as? Activity)?.window
+        if (window != null) {
+            val controller = WindowCompat.getInsetsController(window, view)
+            controller.isAppearanceLightStatusBars = !theme.dark
+            controller.isAppearanceLightNavigationBars = !theme.dark
+        }
+    }
     GradientBackground {
         if (settings == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -76,7 +92,44 @@ private fun AppNav(repo: Repository, settings: ShopSettings) {
                 settings = settings,
                 onAddProduct = { nav.navigate("product_form") },
                 onOpenProduct = { id -> nav.navigate("product/$id") },
+                onNavigate = { route -> nav.navigate(route) },
             )
+        }
+        composable("settings") {
+            SettingsScreen(repo, settings, onBack = { nav.popBackStack() }, onNavigate = { nav.navigate(it) })
+        }
+        composable("services") { ServicesScreen(repo, settings, onBack = { nav.popBackStack() }) }
+        composable("categories") { CategoriesScreen(repo, onBack = { nav.popBackStack() }) }
+        composable(
+            "contacts/{kind}",
+            arguments = listOf(navArgument("kind") { type = NavType.StringType }),
+        ) { entry ->
+            ContactsScreen(
+                repo, settings,
+                startKind = entry.arguments?.getString("kind") ?: CUSTOMER,
+                onBack = { nav.popBackStack() },
+                onAdd = { kind -> nav.navigate("contact_form/$kind") },
+                onOpen = { id -> nav.navigate("contact/$id") },
+            )
+        }
+        composable(
+            "contact_form/{kind}",
+            arguments = listOf(navArgument("kind") { type = NavType.StringType }),
+        ) { entry ->
+            ContactFormScreen(repo, settings, entry.arguments?.getString("kind") ?: CUSTOMER, null, onBack = { nav.popBackStack() })
+        }
+        composable(
+            "contact_edit/{id}",
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { entry ->
+            ContactFormScreen(repo, settings, CUSTOMER, entry.arguments?.getString("id"), onBack = { nav.popBackStack() })
+        }
+        composable(
+            "contact/{id}",
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString("id") ?: ""
+            ContactDetailScreen(repo, settings, id, onBack = { nav.popBackStack() }, onEdit = { nav.navigate("contact_edit/$id") })
         }
         composable("product_form") {
             ProductFormScreen(repo, settings, productId = null, onBack = { nav.popBackStack() })
