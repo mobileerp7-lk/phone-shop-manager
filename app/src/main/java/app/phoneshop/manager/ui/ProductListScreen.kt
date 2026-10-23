@@ -72,6 +72,7 @@ fun ProductListScreen(
             (
                 q.isEmpty() ||
                     p.name.contains(q, ignoreCase = true) ||
+                    p.itemCode.contains(q, ignoreCase = true) ||
                     p.barcode.contains(q, ignoreCase = true) ||
                     p.attributesJson.contains(q, ignoreCase = true) ||
                     p.id in imeiMatches
@@ -84,7 +85,7 @@ fun ProductListScreen(
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Stock", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
-                GlassField(query, { query = it }, "Search name, model, barcode or IMEI")
+                GlassField(query, { query = it }, "Search name, item code, barcode or IMEI")
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     item { GlassChip("All", categoryFilter == null && !lowOnly) { categoryFilter = null; lowOnly = false } }
                     items(categories) { c ->
@@ -165,7 +166,7 @@ private fun ProductCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text("${category?.name ?: "Product"} · $qty in stock", color = Muted, fontSize = 13.sp)
+                Text("${product.itemCode} · ${category?.name ?: "Product"} · $qty in stock", color = Muted, fontSize = 13.sp)
                 if (low) StatusPill(if (qty == 0) "Out of stock" else "Low stock", Color(0xFFFFEDD5), Warn)
             }
             Column(horizontalAlignment = Alignment.End) {

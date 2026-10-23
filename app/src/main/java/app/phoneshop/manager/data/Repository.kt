@@ -10,6 +10,9 @@ data class StockInfo(val qty: Int, val minCost: Long, val maxCost: Long, val tot
 
 data class UnitInput(val imei1: String, val imei2: String)
 
+fun formatCode(prefix: String, n: Int): String =
+    (if (prefix.isBlank()) "" else "${prefix.trim().uppercase()}-") + n.toString().padStart(4, '0')
+
 fun isValidImei(value: String): Boolean = value.length == 15 && value.all { it.isDigit() }
 
 class Repository(private val db: AppDatabase) {
@@ -42,6 +45,23 @@ class Repository(private val db: AppDatabase) {
             result
         }
 
+    /** The code the next new product will get, shown in the form so the owner can change it. */
+    suspend fun suggestItemCode(): String {
+        val s = settingsDao.get() ?: ShopSettings()
+        return nextFreeCode(s.itemCodePrefix, s.nextItemNumber).first
+    }
+
+    suspend fun findByItemCode(code: String): Product? = productDao.findByCode(code.trim())
+
+    private suspend fun nextFreeCode(prefix: String, start: Int): Pair<String, Int> {
+        var n = start
+        while (true) {
+            val code = formatCode(prefix, n)
+            if (productDao.codeTaken(code, "") == 0) return code to n
+            n++
+        }
+    }
+
     suspend fun saveSettings(settings: ShopSettings) = settingsDao.save(settings)
 
     suspend fun seedIfEmpty() {
@@ -67,6 +87,7 @@ class Repository(private val db: AppDatabase) {
         existingId: String?,
         categoryId: String,
         name: String,
+        itemCode: String,
         barcode: String,
         sellPrice: Long,
         minPrice: Long,
@@ -90,11 +111,27 @@ class Repository(private val db: AppDatabase) {
         val now = System.currentTimeMillis()
         val old = existingId?.let { productDao.getProduct(it) }
         val id = existingId ?: UUID.randomUUID().toString()
+
+        // Item code: blank or the suggested one takes the next number; anything else must be unique.
+        var code = itemCode.trim().uppercase()
+        val settings = settingsDao.get() ?: ShopSettings()
+        if (code.any { it.isWhitespace() }) return@withTransaction "The item code cannot contain spaces."
+        if (existingId == null) {
+            val (suggested, number) = nextFreeCode(settings.itemCodePrefix, settings.nextItemNumber)
+            if (code.isEmpty() || code == suggested) {
+                code = suggested
+                settingsDao.save(settings.copy(nextItemNumber = number + 1))
+            }
+        } else if (code.isEmpty()) {
+            code = old?.itemCode ?: ""
+        }
+        if (productDao.codeTaken(code, id) > 0) return@withTransaction "The item code $code is already used by another product."
         productDao.upsertProduct(
             Product(
                 id = id,
                 categoryId = categoryId,
                 name = name,
+                itemCode = code,
                 barcode = barcode,
                 sellPrice = sellPrice,
                 minPrice = minPrice,

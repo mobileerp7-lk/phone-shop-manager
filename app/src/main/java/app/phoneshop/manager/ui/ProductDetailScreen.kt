@@ -113,9 +113,10 @@ fun ProductDetailScreen(
             }
             Stat("Stock value at cost", Money.format(value, currency), Modifier.fillMaxWidth().riseIn(3))
 
-            if (attrs.isNotEmpty() || p.barcode.isNotBlank() || p.warrantyMonths > 0) {
+            run {
                 SectionLabel("Details")
                 GlassCard(Modifier.fillMaxWidth().riseIn(4)) {
+                    InfoRow("Item code", p.itemCode)
                     attrs.forEach { (k, v) -> InfoRow(k, v) }
                     if (p.barcode.isNotBlank()) InfoRow("Barcode", p.barcode)
                     if (p.warrantyMonths > 0) InfoRow("Warranty", "${p.warrantyMonths} months")

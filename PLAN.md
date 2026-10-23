@@ -147,6 +147,10 @@ data.
 - Product photos (take with camera or pick from gallery).
 - Buying price, selling price, minimum selling price (so staff can't sell below
   it), barcode / SKU.
+- **Item code:** every product has a short unique code (for example PH-0001)
+  made automatically from a prefix the shop chooses in setup. The owner can
+  change it when adding the product. It is used in search and at the till, and
+  printed on labels later. Barcode scanning fills the barcode field in a later step.
 - **Two kinds of stock:**
   - *Counted items* (covers, chargers): just a quantity.
   - *Serial items* (phones): each unit is tracked by its IMEI, so you know
@@ -187,7 +191,7 @@ data.
 - Purchase returns (sending faulty items back).
 
 ### E. POS: selling
-- Fast sales screen: search or scan a barcode, add to cart, change quantity and
+- Fast sales screen: search by name, item code or IMEI, or scan a barcode, add to cart, change quantity and
   price, add a discount.
 - Choose a customer (optional for walk-in, needed if they will owe money).
 - **Payment**: full, partial, or split between methods (part cash, part bank).

@@ -50,6 +50,7 @@ fun SetupScreen(repo: Repository, initial: ShopSettings, onDone: () -> Unit) {
     var country by rememberSaveable { mutableStateOf(initial.countryCode) }
     var currency by rememberSaveable { mutableStateOf(initial.currencyCode) }
     var taxOn by rememberSaveable { mutableStateOf(initial.taxEnabled) }
+    var codePrefix by rememberSaveable { mutableStateOf(initial.itemCodePrefix) }
     var taxNo by rememberSaveable { mutableStateOf(initial.taxNumber) }
     var drive by rememberSaveable { mutableStateOf(initial.useDriveBackup) }
     var supabase by rememberSaveable { mutableStateOf(initial.useSupabase) }
@@ -99,6 +100,7 @@ fun SetupScreen(repo: Repository, initial: ShopSettings, onDone: () -> Unit) {
                         GlassField(shopName, { shopName = it; nameError = null }, "Shop name *", error = nameError)
                         GlassField(address, { address = it }, "Address")
                         GlassField(phone, { phone = it }, "Shop phone / WhatsApp", keyboard = KeyboardType.Phone)
+                        GlassField(codePrefix, { codePrefix = it.filter { c -> c.isLetterOrDigit() }.take(6) }, "Item code letters (PH gives PH-0001)")
                         Text("You can add your logo later in Settings.", color = Muted, fontSize = 13.sp)
                     }
                     1 -> {
@@ -185,6 +187,8 @@ fun SetupScreen(repo: Repository, initial: ShopSettings, onDone: () -> Unit) {
                                     taxNumber = taxNo.trim(),
                                     useDriveBackup = drive,
                                     useSupabase = supabase,
+                                    itemCodePrefix = codePrefix.trim().uppercase().ifEmpty { "PH" },
+                                    nextItemNumber = initial.nextItemNumber,
                                     setupDone = true,
                                 )
                             )

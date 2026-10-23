@@ -72,6 +72,7 @@ fun ProductFormScreen(
 
     var categoryId by remember { mutableStateOf<String?>(null) }
     var name by remember { mutableStateOf("") }
+    var itemCode by remember { mutableStateOf("") }
     var barcode by remember { mutableStateOf("") }
     var sell by remember { mutableStateOf("") }
     var minPrice by remember { mutableStateOf("") }
@@ -92,6 +93,7 @@ fun ProductFormScreen(
             repo.getProduct(productId)?.let { p ->
                 categoryId = p.categoryId
                 name = p.name
+                itemCode = p.itemCode
                 barcode = p.barcode
                 sell = Money.toInput(p.sellPrice)
                 minPrice = Money.toInput(p.minPrice)
@@ -102,6 +104,10 @@ fun ProductFormScreen(
                 json.keys().forEach { key -> values[key] = json.optString(key) }
             }
         }
+    }
+    // A new product is offered the next free item code, which the owner may change.
+    LaunchedEffect(productId) {
+        if (productId == null && itemCode.isEmpty()) itemCode = repo.suggestItemCode()
     }
     // A new product starts on the first category.
     LaunchedEffect(categories) {
@@ -157,6 +163,7 @@ fun ProductFormScreen(
                 existingId = productId,
                 categoryId = cat.id,
                 name = finalName,
+                itemCode = itemCode.trim(),
                 barcode = barcode.trim(),
                 sellPrice = sellMinor,
                 minPrice = minMinor,
@@ -226,6 +233,7 @@ fun ProductFormScreen(
             SectionLabel("${category?.name ?: "Product"} details")
             for (f in fields) FieldInput(f, values[f.id] ?: "") { values[f.id] = it }
             GlassField(name, { name = it }, "Product name (optional: made from the details above)")
+            GlassField(itemCode, { itemCode = it.uppercase().filter { c -> !c.isWhitespace() } }, "Item code (made for you, you can change it)")
             GlassField(barcode, { barcode = it }, "Barcode / SKU (optional)")
 
             SectionLabel("Prices (${currency.code})")

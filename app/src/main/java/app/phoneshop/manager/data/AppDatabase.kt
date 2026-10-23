@@ -8,6 +8,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -17,6 +19,9 @@ interface SettingsDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun save(settings: ShopSettings)
+
+    @Query("SELECT * FROM settings WHERE id = 1")
+    suspend fun get(): ShopSettings?
 }
 
 @Dao
@@ -47,6 +52,12 @@ interface ProductDao {
 
     @Query("SELECT * FROM products WHERE id = :id")
     suspend fun getProduct(id: String): Product?
+
+    @Query("SELECT COUNT(*) FROM products WHERE UPPER(itemCode) = UPPER(:code) AND id != :excludeId")
+    suspend fun codeTaken(code: String, excludeId: String): Int
+
+    @Query("SELECT * FROM products WHERE UPPER(itemCode) = UPPER(:code) AND deletedAt IS NULL LIMIT 1")
+    suspend fun findByCode(code: String): Product?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertProduct(product: Product)
@@ -99,7 +110,7 @@ interface ProductDao {
         StockUnit::class,
         StockBatch::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -109,6 +120,24 @@ abstract class AppDatabase : RoomDatabase() {
 
     companion object {
         fun build(context: Context): AppDatabase =
-            Room.databaseBuilder(context, AppDatabase::class.java, "phoneshop.db").build()
+            Room.databaseBuilder(context, AppDatabase::class.java, "phoneshop.db")
+                .addMigrations(MIGRATION_1_2)
+                .build()
+
+        /** Adds item codes. Products saved before this get PH-0001, PH-0002 ... so nothing is lost. */
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE settings ADD COLUMN itemCodePrefix TEXT NOT NULL DEFAULT 'PH'")
+                db.execSQL("ALTER TABLE settings ADD COLUMN nextItemNumber INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE products ADD COLUMN itemCode TEXT NOT NULL DEFAULT ''")
+                db.execSQL(
+                    "UPDATE products SET itemCode = 'PH-' || substr('0000' || " +
+                        "(SELECT COUNT(*) FROM products p2 WHERE p2.createdAt < products.createdAt " +
+                        "OR (p2.createdAt = products.createdAt AND p2.id <= products.id)), -4)"
+                )
+                db.execSQL("UPDATE settings SET nextItemNumber = (SELECT COUNT(*) + 1 FROM products)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_products_itemCode` ON `products` (`itemCode`)")
+            }
+        }
     }
 }

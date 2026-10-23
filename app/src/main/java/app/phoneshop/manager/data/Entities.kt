@@ -18,6 +18,9 @@ data class ShopSettings(
     val useDriveBackup: Boolean = false,
     val useSupabase: Boolean = false,
     val setupDone: Boolean = false,
+    /** Item codes look like PH-0001. The prefix is the shop's choice. */
+    val itemCodePrefix: String = "PH",
+    val nextItemNumber: Int = 1,
 )
 
 @Entity(tableName = "categories")
@@ -42,11 +45,16 @@ data class CategoryField(
     val sortOrder: Int,
 )
 
-@Entity(tableName = "products", indices = [Index("categoryId")])
+@Entity(
+    tableName = "products",
+    indices = [Index("categoryId"), Index(value = ["itemCode"], unique = true)],
+)
 data class Product(
     @PrimaryKey val id: String,
     val categoryId: String,
     val name: String,
+    /** Short unique code printed on labels and typed at the till, e.g. PH-0001. */
+    val itemCode: String,
     val barcode: String,
     /** Money is always whole minor units (cents / paisa), never floating point. */
     val sellPrice: Long,
