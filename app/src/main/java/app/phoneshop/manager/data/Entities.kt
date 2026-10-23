@@ -23,6 +23,9 @@ data class ShopSettings(
     val nextItemNumber: Int = 1,
     /** Colour theme id; blank means the app default. */
     val themeId: String = "",
+    val nextBillNumber: Int = 1001,
+    /** Tax rate in hundredths of a percent (1800 = 18%). Prices already include tax. */
+    val taxRateBp: Int = 0,
 )
 
 @Entity(tableName = "categories")
@@ -132,6 +135,8 @@ data class Contact(
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,
+    /** When the customer promised to pay what they owe. */
+    val promiseDate: Long? = null,
 )
 
 /** A place the shop's money sits: cash drawer, bank account, mobile wallet. type: CASH, BANK, WALLET. */
@@ -181,4 +186,43 @@ data class MoneyEntry(
     val createdAt: Long,
     val voidedAt: Long? = null,
     val voidReason: String = "",
+)
+
+/** A finished bill. status: DONE or CANCELLED. All money is in minor units. */
+@Entity(tableName = "sales", indices = [Index("customerId"), Index("createdAt")])
+data class Sale(
+    @PrimaryKey val id: String,
+    val billNo: Int,
+    val customerId: String?,
+    val subtotal: Long,
+    val discount: Long,
+    val taxAmount: Long,
+    val total: Long,
+    /** Paid at the time of the sale. */
+    val paid: Long,
+    /** total - paid: added to the customer's balance. */
+    val due: Long,
+    val promiseDate: Long?,
+    val status: String,
+    val cancelReason: String,
+    val staffName: String,
+    val createdAt: Long,
+    val cancelledAt: Long? = null,
+)
+
+/** One line on a bill. costTotal is frozen when sold and never recalculated. kind: PRODUCT or SERVICE. */
+@Entity(tableName = "sale_lines", indices = [Index("saleId")])
+data class SaleLine(
+    @PrimaryKey val id: String,
+    val saleId: String,
+    val kind: String,
+    val productId: String?,
+    val name: String,
+    val qty: Int,
+    val unitPrice: Long,
+    val lineTotal: Long,
+    val costTotal: Long,
+    val unitId: String?,
+    val imei: String,
+    val warrantyMonths: Int,
 )

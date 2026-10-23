@@ -163,12 +163,16 @@ fun SettingsScreen(
         Editing.TAX -> {
             var on by remember { mutableStateOf(settings.taxEnabled) }
             var number by remember { mutableStateOf(settings.taxNumber) }
+            var rate by remember { mutableStateOf(if (settings.taxRateBp > 0) (settings.taxRateBp / 100.0).toString().removeSuffix(".0") else "") }
             EditDialog("Tax on bills", true, { editing = Editing.NONE }, {
-                save(settings.copy(taxEnabled = on, taxNumber = number.trim()))
+                save(settings.copy(taxEnabled = on, taxNumber = number.trim(), taxRateBp = ((rate.toDoubleOrNull() ?: 0.0) * 100).toInt()))
                 editing = Editing.NONE
             }) {
                 SwitchRow("My shop charges tax on bills", "GST / VAT. Off by default.", on, { on = it })
-                if (on) GlassField(number, { number = it }, "Tax number (shown on bills)")
+                if (on) {
+                    GlassField(number, { number = it }, "Tax number (shown on bills)")
+                    GlassField(rate, { rate = it }, "Tax rate % (prices already include it)", keyboard = KeyboardType.Decimal)
+                }
             }
         }
         Editing.CODE -> {

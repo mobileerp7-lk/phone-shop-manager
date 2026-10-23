@@ -60,8 +60,13 @@ fun MainShell(
     onAddProduct: () -> Unit,
     onOpenProduct: (String) -> Unit,
     onNavigate: (String) -> Unit,
+    cart: CartState,
+    onPay: () -> Unit,
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    androidx.compose.runtime.LaunchedEffect(cart.requestTab) {
+        cart.requestTab?.let { tab = it; cart.requestTab = null }
+    }
     val reduce = LocalReduceMotion.current
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f)) {
@@ -79,11 +84,13 @@ fun MainShell(
                 when (t) {
                     0 -> HomeScreen(repo, settings, onAddProduct, onGoStock = { tab = 2 })
                     2 -> ProductListScreen(repo, settings, onAddProduct, onOpenProduct)
+                    1 -> SellScreen(repo, settings, cart, onPay)
                     3 -> MoneyScreen(repo, settings, onNavigate)
                     4 -> MoreScreen { route ->
                         when (route) {
                             "products" -> tab = 2
                             "sell" -> tab = 1
+                            "bills" -> onNavigate("bills")
                             "accounts" -> tab = 3
                             "money_entries" -> onNavigate("statement/ALL")
                             "transfers" -> onNavigate("money_entry/TRANSFER")

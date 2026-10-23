@@ -133,7 +133,46 @@ interface MoneyDao {
 }
 
 @Dao
+interface SaleDao {
+    @Query("SELECT * FROM sales ORDER BY createdAt DESC")
+    fun observeSales(): Flow<List<Sale>>
+
+    @Query("SELECT * FROM sales WHERE id = :id")
+    fun observeSale(id: String): Flow<Sale?>
+
+    @Query("SELECT * FROM sales WHERE id = :id")
+    suspend fun getSale(id: String): Sale?
+
+    @Query("SELECT * FROM sale_lines WHERE saleId = :id")
+    fun observeLines(id: String): Flow<List<SaleLine>>
+
+    @Query("SELECT * FROM sale_lines WHERE saleId = :id")
+    suspend fun getLines(id: String): List<SaleLine>
+
+    @Query("SELECT * FROM sale_lines")
+    fun observeAllLines(): Flow<List<SaleLine>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertSale(sale: Sale)
+
+    @Insert
+    suspend fun insertLine(line: SaleLine)
+}
+
+@Dao
 interface ProductDao {
+    @Query("SELECT * FROM stock_units WHERE id = :id")
+    suspend fun getUnit(id: String): StockUnit?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertUnit(unit: StockUnit)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertBatch(batch: StockBatch)
+
+    @Query("SELECT * FROM stock_batches WHERE productId = :id AND remaining > 0 ORDER BY createdAt")
+    suspend fun batchesWithStock(id: String): List<StockBatch>
+
     @Query("SELECT * FROM products WHERE deletedAt IS NULL ORDER BY updatedAt DESC")
     fun observeProducts(): Flow<List<Product>>
 
@@ -204,8 +243,10 @@ interface ProductDao {
         Account::class,
         EntryType::class,
         MoneyEntry::class,
+        Sale::class,
+        SaleLine::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -215,6 +256,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun serviceDao(): ServiceDao
     abstract fun contactDao(): ContactDao
     abstract fun moneyDao(): MoneyDao
+    abstract fun saleDao(): SaleDao
 
     companion object {
         fun build(context: Context): AppDatabase =

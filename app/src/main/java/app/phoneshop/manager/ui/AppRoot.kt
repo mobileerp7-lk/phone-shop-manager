@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
 import android.app.Activity
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import androidx.navigation.compose.NavHost
@@ -59,6 +60,7 @@ fun AppRoot(repo: Repository) {
 @Composable
 private fun AppNav(repo: Repository, settings: ShopSettings) {
     val nav = rememberNavController()
+    val cart = remember { CartState() }
     val reduce = LocalReduceMotion.current
     val enter: () -> EnterTransition = {
         if (reduce) EnterTransition.None else fadeIn(tween(300)) + slideInHorizontally(tween(300)) { it / 8 }
@@ -93,6 +95,8 @@ private fun AppNav(repo: Repository, settings: ShopSettings) {
                 onAddProduct = { nav.navigate("product_form") },
                 onOpenProduct = { id -> nav.navigate("product/$id") },
                 onNavigate = { route -> nav.navigate(route) },
+                cart = cart,
+                onPay = { nav.navigate("payment") },
             )
         }
         composable("settings") {
@@ -110,6 +114,30 @@ private fun AppNav(repo: Repository, settings: ShopSettings) {
             arguments = listOf(navArgument("id") { type = NavType.StringType }),
         ) { entry ->
             StatementScreen(repo, settings, entry.arguments?.getString("id") ?: "ALL", onBack = { nav.popBackStack() })
+        }
+        composable("payment") {
+            PaymentScreen(
+                repo, settings, cart,
+                onBack = { nav.popBackStack() },
+                onDone = { saleId -> nav.navigate("bill/$saleId") { popUpTo("payment") { inclusive = true } } },
+            )
+        }
+        composable(
+            "bill/{id}",
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { entry ->
+            BillScreen(
+                repo, settings, entry.arguments?.getString("id") ?: "",
+                onBack = { nav.popBackStack() },
+                onNewSale = { cart.requestTab = 1; nav.popBackStack("main", false) },
+            )
+        }
+        composable("bills") { BillsListScreen(repo, settings, onBack = { nav.popBackStack() }, onOpen = { nav.navigate("bill/$it") }) }
+        composable(
+            "settle/{id}",
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { entry ->
+            SettleScreen(repo, settings, entry.arguments?.getString("id") ?: "", onBack = { nav.popBackStack() })
         }
         composable("services") { ServicesScreen(repo, settings, onBack = { nav.popBackStack() }) }
         composable("categories") { CategoriesScreen(repo, onBack = { nav.popBackStack() }) }
@@ -142,7 +170,18 @@ private fun AppNav(repo: Repository, settings: ShopSettings) {
             arguments = listOf(navArgument("id") { type = NavType.StringType }),
         ) { entry ->
             val id = entry.arguments?.getString("id") ?: ""
-            ContactDetailScreen(repo, settings, id, onBack = { nav.popBackStack() }, onEdit = { nav.navigate("contact_edit/$id") })
+            ContactDetailScreen(
+                repo, settings, id,
+                onBack = { nav.popBackStack() },
+                onEdit = { nav.navigate("contact_edit/$id") },
+                onCollect = { nav.navigate("settle/$id") },
+                onSell = {
+                    cart.customerId = id
+                    cart.requestTab = 1
+                    nav.popBackStack("main", false)
+                },
+                onOpenBill = { billId -> nav.navigate("bill/$billId") },
+            )
         }
         composable("product_form") {
             ProductFormScreen(repo, settings, productId = null, onBack = { nav.popBackStack() })

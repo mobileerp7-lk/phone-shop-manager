@@ -11,6 +11,26 @@ data class StockInfo(val qty: Int, val minCost: Long, val maxCost: Long, val tot
 /** An account with its current balance and what moved today. */
 data class AccountView(val account: Account, val balance: Long, val todayIn: Long, val todayOut: Long)
 
+/** One line in the cart before the sale is saved. */
+data class CartLine(
+    val key: String,
+    val kind: String,
+    val productId: String?,
+    val name: String,
+    val qty: Int,
+    val unitPrice: Long,
+    val unitId: String?,
+    val imei: String,
+    val warrantyMonths: Int,
+    val tracksImei: Boolean,
+    val minPrice: Long = 0L,
+)
+
+data class PaymentInput(val accountId: String, val amount: Long)
+
+/** The outcome of saving a bill: the new bill id, or a message to show. */
+data class SaleResult(val saleId: String?, val error: String?)
+
 data class UnitInput(val imei1: String, val imei2: String)
 
 fun formatCode(prefix: String, n: Int): String =
@@ -25,6 +45,7 @@ class Repository(private val db: AppDatabase) {
     private val serviceDao = db.serviceDao()
     private val contactDao = db.contactDao()
     private val moneyDao = db.moneyDao()
+    private val saleDao = db.saleDao()
 
     /** Never null once loaded; a shop that has not finished setup gets defaults. */
     val settings: Flow<ShopSettings> = settingsDao.observe().map { it ?: ShopSettings() }
@@ -123,6 +144,140 @@ class Repository(private val db: AppDatabase) {
 
     suspend fun deleteEntryType(id: String) = moneyDao.softDeleteType(id, System.currentTimeMillis())
 
+    val sales: Flow<List<Sale>> = saleDao.observeSales()
+    val allSaleLines: Flow<List<SaleLine>> = saleDao.observeAllLines()
+    fun observeSale(id: String): Flow<Sale?> = saleDao.observeSale(id)
+    fun observeSaleLines(id: String): Flow<List<SaleLine>> = saleDao.observeLines(id)
+
+    /** contact id -> what they owe the shop (customers) or what the shop owes them (suppliers). */
+    val contactBalances: Flow<Map<String, Long>> = combine(contacts, sales, entries) { people, bills, moves ->
+        people.associate { p ->
+            val billed = bills.filter { it.customerId == p.id && it.status == "DONE" }.sumOf { it.due }
+            val settled = moves.filter { it.contactId == p.id && it.voidedAt == null && (it.kind == "DEBT_PAID" || it.kind == "SUPPLIER_PAID") }
+                .sumOf { kotlin.math.abs(it.amount) }
+            p.id to (p.openingBalance + billed - settled)
+        }
+    }
+
+    /**
+ * Takes money from a customer for an old debt (not new income: the sale was counted already),
+ * or pays a supplier what the shop owes.
+ */
+    suspend fun settleBalance(contactId: String, supplier: Boolean, accountId: String, amount: Long, newPromise: Long?, note: String): String? = db.withTransaction {
+        if (amount <= 0) return@withTransaction "Enter the amount received."
+        moneyDao.insertEntry(
+            newEntry(
+                if (supplier) "SUPPLIER_PAID" else "DEBT_PAID", accountId, if (supplier) -amount else amount, null, note,
+                UUID.randomUUID().toString(),
+            ).copy(contactId = contactId, refType = "CONTACT", refId = contactId)
+        )
+        contactDao.get(contactId)?.let { contactDao.upsert(it.copy(promiseDate = newPromise, updatedAt = System.currentTimeMillis())) }
+        null
+    }
+
+    /**
+     * Saves a bill: checks stock, freezes each line's cost, takes the payments into the chosen accounts,
+     * and adds anything unpaid to the customer's balance. All or nothing.
+     */
+    suspend fun completeSale(
+        lines: List<CartLine>,
+        discount: Long,
+        customerId: String?,
+        payments: List<PaymentInput>,
+        promiseDate: Long?,
+    ): SaleResult = db.withTransaction {
+        if (lines.isEmpty()) return@withTransaction SaleResult(null, "The cart is empty.")
+        val settings = settingsDao.get() ?: ShopSettings()
+        val subtotal = lines.sumOf { it.unitPrice * it.qty }
+        if (discount < 0 || discount > subtotal) return@withTransaction SaleResult(null, "The discount is more than the bill.")
+        val total = subtotal - discount
+        val paid = payments.filter { it.amount > 0 }.sumOf { it.amount }
+        if (paid > total) return@withTransaction SaleResult(null, "The payments are more than the bill total.")
+        val due = total - paid
+        if (due > 0 && customerId == null) return@withTransaction SaleResult(null, "Choose a customer, because some money is left to pay.")
+
+        val now = System.currentTimeMillis()
+        val saleId = UUID.randomUUID().toString()
+        val saved = ArrayList<SaleLine>()
+        for (l in lines) {
+            var cost = 0L
+            var unitId: String? = null
+            var imei = ""
+            if (l.kind == "PRODUCT") {
+                if (l.tracksImei) {
+                    val unit = l.unitId?.let { productDao.getUnit(it) }
+                    if (unit == null || unit.status != "IN_STOCK") return@withTransaction SaleResult(null, "${l.name}: that phone is no longer in stock.")
+                    productDao.upsertUnit(unit.copy(status = "SOLD"))
+                    cost = unit.unitCost
+                    unitId = unit.id
+                    imei = unit.imei1
+                } else {
+                    val batches = productDao.batchesWithStock(l.productId ?: "")
+                    val available = batches.sumOf { it.remaining }
+                    if (available < l.qty) return@withTransaction SaleResult(null, "${l.name}: only $available in stock.")
+                    // Average cost of what is on the shelf now, frozen on this line.
+                    val value = batches.sumOf { it.remaining.toLong() * it.unitCost }
+                    cost = value * l.qty / available
+                    var need = l.qty
+                    for (b in batches) {
+                        if (need == 0) break
+                        val take = minOf(need, b.remaining)
+                        productDao.upsertBatch(b.copy(remaining = b.remaining - take))
+                        need -= take
+                    }
+                }
+            }
+            saved.add(
+                SaleLine(
+                    id = UUID.randomUUID().toString(), saleId = saleId, kind = l.kind, productId = l.productId,
+                    name = l.name, qty = l.qty, unitPrice = l.unitPrice, lineTotal = l.unitPrice * l.qty,
+                    costTotal = cost, unitId = unitId, imei = imei, warrantyMonths = l.warrantyMonths,
+                )
+            )
+        }
+        val tax = if (settings.taxEnabled && settings.taxRateBp > 0) total * settings.taxRateBp / (10000 + settings.taxRateBp) else 0L
+        saleDao.upsertSale(
+            Sale(
+                id = saleId, billNo = settings.nextBillNumber, customerId = customerId, subtotal = subtotal,
+                discount = discount, taxAmount = tax, total = total, paid = paid, due = due, promiseDate = promiseDate,
+                status = "DONE", cancelReason = "", staffName = "Owner", createdAt = now,
+            )
+        )
+        saved.forEach { saleDao.insertLine(it) }
+        for (p in payments.filter { it.amount > 0 }) {
+            moneyDao.insertEntry(
+                newEntry("SALE", p.accountId, p.amount, null, "Bill #${settings.nextBillNumber}", saleId)
+                    .copy(contactId = customerId, refType = "SALE", refId = saleId)
+            )
+        }
+        settingsDao.save(settings.copy(nextBillNumber = settings.nextBillNumber + 1))
+        if (customerId != null && due > 0 && promiseDate != null) {
+            contactDao.get(customerId)?.let { contactDao.upsert(it.copy(promiseDate = promiseDate, updatedAt = now)) }
+        }
+        SaleResult(saleId, null)
+    }
+
+    /** Cancels a bill: stock and money are put back, and the bill stays in the records with the reason. */
+    suspend fun cancelSale(saleId: String, reason: String): String? = db.withTransaction {
+        val sale = saleDao.getSale(saleId) ?: return@withTransaction "Bill not found."
+        if (sale.status != "DONE") return@withTransaction "This bill is already cancelled."
+        val now = System.currentTimeMillis()
+        for (l in saleDao.getLines(saleId)) {
+            if (l.kind != "PRODUCT") continue
+            if (l.unitId != null) {
+                productDao.getUnit(l.unitId)?.let { productDao.upsertUnit(it.copy(status = "IN_STOCK")) }
+            } else if (l.productId != null) {
+                // Put the items back as a batch at the cost they were sold at.
+                productDao.upsertBatch(
+                    StockBatch(UUID.randomUUID().toString(), l.productId, l.qty, l.qty, if (l.qty > 0) l.costTotal / l.qty else 0L, now)
+                )
+            }
+        }
+        moneyDao.voidGroup(saleId, now, "Bill #${sale.billNo} cancelled: ${reason.trim()}")
+        saleDao.upsertSale(sale.copy(status = "CANCELLED", cancelReason = reason.trim(), cancelledAt = now))
+        null
+    }
+
     fun observeContact(id: String): Flow<Contact?> = contactDao.observe(id)
     suspend fun getContact(id: String): Contact? = contactDao.get(id)
 
@@ -156,6 +311,7 @@ class Repository(private val db: AppDatabase) {
                 id = id, kind = kind, name = name.trim(), phone = phone.trim(), address = address.trim(),
                 note = note.trim(), openingBalance = openingBalance,
                 createdAt = existing?.createdAt ?: now, updatedAt = now,
+                promiseDate = existing?.promiseDate,
             )
         )
         return id

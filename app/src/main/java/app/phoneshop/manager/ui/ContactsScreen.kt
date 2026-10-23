@@ -54,6 +54,7 @@ fun ContactsScreen(
     onOpen: (String) -> Unit,
 ) {
     val contacts by repo.contacts.collectAsState(initial = emptyList())
+    val balances by repo.contactBalances.collectAsState(initial = emptyMap())
     val currency = Locales.currency(settings.currencyCode)
     var kind by rememberSaveable { mutableStateOf(startKind) }
     var query by rememberSaveable { mutableStateOf("") }
@@ -61,11 +62,11 @@ fun ContactsScreen(
 
     val ofKind = contacts.filter { it.kind == kind }
     val shown = ofKind.filter {
-        (!oweOnly || it.openingBalance > 0) &&
+        (!oweOnly || (balances[it.id] ?: 0L) > 0) &&
             (query.isBlank() || it.name.contains(query, true) || it.phone.contains(query, true))
     }
-    val totalOwed = ofKind.sumOf { it.openingBalance.coerceAtLeast(0) }
-    val owingCount = ofKind.count { it.openingBalance > 0 }
+    val totalOwed = ofKind.sumOf { (balances[it.id] ?: 0L).coerceAtLeast(0) }
+    val owingCount = ofKind.count { (balances[it.id] ?: 0L) > 0 }
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
@@ -105,10 +106,11 @@ fun ContactsScreen(
                                     Text(c.name, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                                     if (c.phone.isNotBlank()) Text(c.phone, color = Muted, fontSize = 13.sp)
                                 }
+                                val bal = balances[c.id] ?: 0L
                                 Text(
-                                    Money.format(c.openingBalance, currency),
+                                    Money.format(bal, currency),
                                     fontWeight = FontWeight.Bold,
-                                    color = if (c.openingBalance > 0) Warn else Muted,
+                                    color = if (bal > 0) Warn else Muted,
                                 )
                             }
                         }
@@ -205,7 +207,7 @@ fun ContactFormScreen(
     }
 }
 
-/** The profile page: what they owe and, in later steps, their full history. */
+/** The profile page: what they owe, quick actions and a statement-style history. */
 @Composable
 fun ContactDetailScreen(
     repo: Repository,
@@ -213,8 +215,14 @@ fun ContactDetailScreen(
     contactId: String,
     onBack: () -> Unit,
     onEdit: () -> Unit,
+    onCollect: () -> Unit,
+    onSell: () -> Unit,
+    onOpenBill: (String) -> Unit,
 ) {
     val contact by repo.observeContact(contactId).collectAsState(initial = null)
+    val balances by repo.contactBalances.collectAsState(initial = emptyMap())
+    val sales by repo.sales.collectAsState(initial = emptyList())
+    val entries by repo.entries.collectAsState(initial = emptyList())
     val currency = Locales.currency(settings.currencyCode)
     val c = contact
     ScreenScaffold(
@@ -223,6 +231,9 @@ fun ContactDetailScreen(
         actions = { TextButton(onClick = onEdit, enabled = c != null) { Text("Edit", color = Indigo, fontWeight = FontWeight.SemiBold) } },
     ) {
         if (c == null) return@ScreenScaffold
+        val owed = balances[c.id] ?: 0L
+        val mySales = sales.filter { it.customerId == c.id && it.status == "DONE" }
+        val payments = entries.filter { it.contactId == c.id && it.voidedAt == null && (it.kind == "DEBT_PAID" || it.kind == "SUPPLIER_PAID") }
         GlassCard(Modifier.fillMaxWidth().riseIn(0)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Avatar(c.name)
@@ -235,14 +246,117 @@ fun ContactDetailScreen(
         }
         GlassCard(Modifier.fillMaxWidth().riseIn(1)) {
             Text(if (c.kind == SUPPLIER) "You owe them" else "Owes you", color = Muted, fontSize = 13.sp)
-            Text(
-                Money.format(c.openingBalance, currency),
-                fontSize = 26.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = if (c.openingBalance > 0) Warn else Good,
-            )
+            Text(Money.format(owed, currency), fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = if (owed > 0) Warn else Good)
+            c.promiseDate?.let { if (owed > 0) Text("Promised by ${java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()).toLocalDate()}", color = Muted, fontSize = 13.sp) }
         }
-        SectionLabel("History")
-        EmptyCard("Nothing yet", "Bills, repairs and payments will appear here like a statement once selling is added.")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            GradientButton(if (c.kind == SUPPLIER) "Pay supplier" else "Collect", onCollect, Modifier.weight(1f), enabled = owed > 0)
+            if (c.kind == CUSTOMER) GlassButton("New sale", onSell, Modifier.weight(1f))
+        }
+        if (c.kind == CUSTOMER) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                GlassCard(Modifier.weight(1f)) {
+                    Text("Total bought", color = Muted, fontSize = 12.sp)
+                    Text(Money.format(mySales.sumOf { it.total }, currency), fontWeight = FontWeight.Bold)
+                }
+                GlassCard(Modifier.weight(1f)) {
+                    Text("Bills", color = Muted, fontSize = 12.sp)
+                    Text(mySales.size.toString(), fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        SectionLabel("History (like a statement)")
+        data class Item(val time: Long, val title: String, val sub: String, val change: Long, val billId: String?)
+        val items = buildList {
+            if (c.openingBalance != 0L) add(Item(c.createdAt, "Opening balance", "from before the app", c.openingBalance, null))
+            mySales.forEach { s -> add(Item(s.createdAt, "Bill #${s.billNo}", "total ${Money.format(s.total, currency)} · paid ${Money.format(s.paid, currency)}", s.due, s.id)) }
+            payments.forEach { e -> add(Item(e.entryDate, if (c.kind == SUPPLIER) "Paid supplier" else "Payment received", e.note, -kotlin.math.abs(e.amount), null)) }
+        }.sortedByDescending { it.time }
+        if (items.isEmpty()) EmptyCard("Nothing yet", "Bills and payments will appear here.")
+        items.forEach { i ->
+            GlassCard(Modifier.fillMaxWidth(), onClick = i.billId?.let { id -> { onOpenBill(id) } }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(i.title, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            listOf(BillPdfDate(i.time), i.sub).filter { it.isNotBlank() }.joinToString(" · "),
+                            color = Muted, fontSize = 12.sp,
+                        )
+                    }
+                    Text(
+                        (if (i.change > 0) "+ " else if (i.change < 0) "− " else "") + Money.format(kotlin.math.abs(i.change), currency),
+                        fontWeight = FontWeight.Bold,
+                        color = if (i.change > 0) Warn else if (i.change < 0) Good else Muted,
+                    )
+                }
+            }
+        }
+        Text("+ means they owe more, − means they paid some back.", color = Muted, fontSize = 12.sp)
+    }
+}
+
+private fun BillPdfDate(millis: Long): String = app.phoneshop.manager.util.BillPdf.dateText(millis)
+
+/** Collect an old debt from a customer, or pay a supplier. Same screen, reversed. */
+@Composable
+fun SettleScreen(repo: Repository, settings: ShopSettings, contactId: String, onBack: () -> Unit) {
+    val contact by repo.observeContact(contactId).collectAsState(initial = null)
+    val balances by repo.contactBalances.collectAsState(initial = emptyMap())
+    val views by repo.accountViews.collectAsState(initial = emptyList())
+    val currency = Locales.currency(settings.currencyCode)
+    val scope = rememberCoroutineScope()
+    var amount by remember { mutableStateOf("") }
+    var accountId by remember { mutableStateOf<String?>(null) }
+    var promise by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+    val c = contact
+    val supplier = c?.kind == SUPPLIER
+    val owed = balances[contactId] ?: 0L
+    val minor = Money.parse(amount) ?: 0L
+    val chosen = accountId ?: views.firstOrNull()?.account?.id
+
+    ScreenScaffold(
+        if (supplier) "Pay supplier" else "Collect payment",
+        onBack,
+        bottom = {
+            GradientButton("Save payment", {
+                val acc = chosen
+                val promiseMs = if (promise.isBlank()) null else parseDay(promise)
+                when {
+                    acc == null -> error = "Choose an account."
+                    promise.isNotBlank() && promiseMs == null -> error = "Write the date like 2026-11-06."
+                    else -> scope.launch {
+                        val result = repo.settleBalance(contactId, supplier, acc, minor, promiseMs, "")
+                        if (result == null) onBack() else error = result
+                    }
+                }
+            }, Modifier.fillMaxWidth())
+        },
+    ) {
+        if (c == null) return@ScreenScaffold
+        GlassCard(Modifier.fillMaxWidth()) {
+            Text(if (supplier) "You owe ${c.name}" else "${c.name} owes you now", color = Muted, fontSize = 13.sp)
+            Text(Money.format(owed, currency), fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Warn)
+        }
+        GlassField(amount, { amount = it }, if (supplier) "Amount paid (${currency.code})" else "Amount received (${currency.code})", keyboard = KeyboardType.Decimal)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            GlassChip("Full ${Money.format(owed, currency)}", false) { amount = Money.toInput(owed) }
+            GlassChip("Half", false) { amount = Money.toInput(owed / 2) }
+        }
+        SectionLabel(if (supplier) "Paid from" else "Received into")
+        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            androidx.compose.foundation.lazy.items(views) { v -> GlassChip(v.account.name, v.account.id == chosen) { accountId = v.account.id } }
+        }
+        GlassCard(Modifier.fillMaxWidth()) {
+            Text(if (supplier) "Still owed after this" else "Still owes after this", color = Muted, fontSize = 13.sp)
+            Text(Money.format((owed - minor).coerceAtLeast(0), currency), fontWeight = FontWeight.ExtraBold)
+        }
+        if (!supplier) GlassField(promise, { promise = it }, "New promise date (optional, like 2026-11-06)")
+        Text(
+            if (supplier) "Paying a supplier moves money out of your account. It is not an expense, because the purchase was already counted."
+            else "Collecting old debt is not new income. The sale was counted on the day it was made. It only moves money into your account.",
+            color = Muted, fontSize = 13.sp,
+        )
+        error?.let { Text(it, color = Bad, fontWeight = FontWeight.SemiBold) }
     }
 }

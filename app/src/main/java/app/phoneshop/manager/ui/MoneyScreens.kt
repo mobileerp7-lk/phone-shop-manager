@@ -70,14 +70,15 @@ fun MoneyScreen(
 ) {
     val views by repo.accountViews.collectAsState(initial = emptyList())
     val contacts by repo.contacts.collectAsState(initial = emptyList())
+    val balances by repo.contactBalances.collectAsState(initial = emptyMap())
     val entries by repo.entries.collectAsState(initial = emptyList())
     val currency = Locales.currency(settings.currencyCode)
     var addAccount by remember { mutableStateOf(false) }
 
     val total = views.sumOf { it.balance }
     val ownerNet = entries.filter { it.voidedAt == null }.sumOf { if (it.kind == "OWNER_IN" || it.kind == "OWNER_OUT") it.amount else 0L }
-    val customersOwe = contacts.filter { it.kind == CUSTOMER }.sumOf { it.openingBalance.coerceAtLeast(0) }
-    val weOwe = contacts.filter { it.kind == SUPPLIER }.sumOf { it.openingBalance.coerceAtLeast(0) }
+    val customersOwe = contacts.filter { it.kind == CUSTOMER }.sumOf { (balances[it.id] ?: 0L).coerceAtLeast(0) }
+    val weOwe = contacts.filter { it.kind == SUPPLIER }.sumOf { (balances[it.id] ?: 0L).coerceAtLeast(0) }
 
     Column(
         Modifier
