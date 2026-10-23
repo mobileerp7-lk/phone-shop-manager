@@ -404,26 +404,9 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "phoneshop.db")
-                .addMigrations(MIGRATION_1_2)
-                // Only the early test builds (versions 1 to 9) may start fresh. From version 10 on,
+                // Only the early test builds (versions 1 to 9) may start fresh. Room refuses a version that is both here and in a Migration. From version 10 on,
                 // every change to the tables must ship a real migration so shop data is never lost.
                 .fallbackToDestructiveMigrationFrom(1, 2, 3, 4, 5, 6, 7, 8, 9)
                 .build()
-
-        /** Adds item codes. Products saved before this get PH-0001, PH-0002 ... so nothing is lost. */
-        private val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE settings ADD COLUMN itemCodePrefix TEXT NOT NULL DEFAULT 'PH'")
-                db.execSQL("ALTER TABLE settings ADD COLUMN nextItemNumber INTEGER NOT NULL DEFAULT 1")
-                db.execSQL("ALTER TABLE products ADD COLUMN itemCode TEXT NOT NULL DEFAULT ''")
-                db.execSQL(
-                    "UPDATE products SET itemCode = 'PH-' || substr('0000' || " +
-                        "(SELECT COUNT(*) FROM products p2 WHERE p2.createdAt < products.createdAt " +
-                        "OR (p2.createdAt = products.createdAt AND p2.id <= products.id)), -4)"
-                )
-                db.execSQL("UPDATE settings SET nextItemNumber = (SELECT COUNT(*) + 1 FROM products)")
-                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_products_itemCode` ON `products` (`itemCode`)")
-            }
-        }
     }
 }
