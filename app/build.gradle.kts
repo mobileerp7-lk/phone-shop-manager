@@ -61,6 +61,10 @@ android {
     buildFeatures {
         compose = true
     }
+    sourceSets {
+        // The Supabase setup script lives once, in supabase/migrations, and ships inside the app.
+        getByName("main").assets.srcDir("../supabase/migrations")
+    }
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }

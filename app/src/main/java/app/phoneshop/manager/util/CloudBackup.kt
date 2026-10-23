@@ -133,22 +133,7 @@ object CloudBackup {
         f to null
     }.getOrElse { null to (it.message ?: "No internet, or the address is wrong.") }
 
-    /** Paste this once into the Supabase "SQL editor". It creates a private place for backups. */
-    val SETUP_SQL = """
-insert into storage.buckets (id, name, public)
-values ('backups', 'backups', false)
-on conflict (id) do nothing;
-
-create policy "shop owner reads own backups" on storage.objects
-for select to authenticated
-using (bucket_id = 'backups' and (storage.foldername(name))[1] = auth.uid()::text);
-
-create policy "shop owner adds own backups" on storage.objects
-for insert to authenticated
-with check (bucket_id = 'backups' and (storage.foldername(name))[1] = auth.uid()::text);
-
-create policy "shop owner replaces own backups" on storage.objects
-for update to authenticated
-using (bucket_id = 'backups' and (storage.foldername(name))[1] = auth.uid()::text);
-""".trim()
+    /** Paste this once into the Supabase "SQL editor". It is the same file as supabase/migrations/0001_shop_sync.sql. */
+    fun setupSql(context: Context): String =
+        context.assets.open("0001_shop_sync.sql").bufferedReader().use { it.readText() }
 }

@@ -72,7 +72,7 @@ fun CloudScreen(repo: Repository, settings: ShopSettings, onBack: () -> Unit) {
         }
         GlassButton("Copy the setup script", {
             (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
-                .setPrimaryClip(ClipData.newPlainText("Setup script", CloudBackup.SETUP_SQL))
+                .setPrimaryClip(ClipData.newPlainText("Setup script", CloudBackup.setupSql(context)))
             status = "Copied. Paste it in the Supabase SQL Editor."
         }, Modifier.fillMaxWidth())
         SectionLabel("Step 2 - connect")
