@@ -151,12 +151,7 @@ fun SettingsScreen(
         NavRow("Back up now to a file", if (settings.lastBackupAt > 0) "Last: " + BillPdf.dateText(settings.lastBackupAt) else "Never", { filePicker.launch(Backup.fileName()) })
         NavRow("Restore from a backup file", "", { restorePicker.launch(arrayOf("application/zip", "application/octet-stream")) })
         status?.let { Text(it, color = Muted, fontSize = 13.sp) }
-        SwitchRow(
-            "Sync online with my Supabase",
-            "Arrives in the last update. Your choice is saved.",
-            settings.useSupabase,
-            { save(settings.copy(useSupabase = it)) },
-        )
+        NavRow("Online backup (my Supabase)", if (settings.useSupabase) "On" else "Off", { onNavigate("cloud") })
 
         SectionLabel("People and safety")
         NavRow("Staff and roles", "${staff.size} people", { onNavigate("staff") })

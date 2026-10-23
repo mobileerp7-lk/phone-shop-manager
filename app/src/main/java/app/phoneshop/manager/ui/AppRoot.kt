@@ -239,6 +239,7 @@ private fun AppNav(repo: Repository, settings: ShopSettings) {
         composable("report_monthly") { MonthlyScreen(repo, settings, onBack = { nav.popBackStack() }) }
         composable("report_pl") { ProfitLossScreen(repo, settings, onBack = { nav.popBackStack() }) }
         composable("dayclose") { DayCloseScreen(repo, settings, onBack = { nav.popBackStack() }) }
+        composable("cloud") { CloudScreen(repo, settings, onBack = { nav.popBackStack() }) }
         composable("staff") { StaffScreen(repo, onBack = { nav.popBackStack() }) }
         composable("services") { ServicesScreen(repo, settings, onBack = { nav.popBackStack() }) }
         composable("categories") { CategoriesScreen(repo, onBack = { nav.popBackStack() }) }
