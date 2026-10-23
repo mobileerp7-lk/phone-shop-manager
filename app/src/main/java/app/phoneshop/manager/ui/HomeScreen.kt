@@ -1,0 +1,118 @@
+package app.phoneshop.manager.ui
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import app.phoneshop.manager.data.Repository
+import app.phoneshop.manager.data.ShopSettings
+import app.phoneshop.manager.util.Locales
+import app.phoneshop.manager.util.Money
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
+@Composable
+fun HomeScreen(
+    repo: Repository,
+    settings: ShopSettings,
+    onAddProduct: () -> Unit,
+    onGoStock: () -> Unit,
+) {
+    val products by repo.products.collectAsState(initial = emptyList())
+    val stock by repo.stock.collectAsState(initial = emptyMap())
+    val currency = Locales.currency(settings.currencyCode)
+
+    val itemsInStock = stock.values.sumOf { it.qty }
+    val stockValue = stock.values.sumOf { it.totalCost }
+    val lowStock = products.count { p -> (stock[p.id]?.qty ?: 0) <= p.lowStockLevel }
+    val date = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d MMM"))
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(Modifier.riseIn(0)) {
+            Text(
+                settings.shopName.ifBlank { "Your shop" },
+                fontSize = 24.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Ink,
+            )
+            Text("$date · amounts in ${currency.code}", color = Muted, fontSize = 14.sp)
+        }
+
+        SectionLabel("Stock snapshot")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            StatCard("Products", products.size.toString(), Modifier.weight(1f).riseIn(1))
+            StatCard("Items in stock", itemsInStock.toString(), Modifier.weight(1f).riseIn(2))
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            StatCard("Stock value at cost", Money.format(stockValue, currency), Modifier.weight(1f).riseIn(3))
+            StatCard(
+                "Low stock",
+                lowStock.toString(),
+                Modifier.weight(1f).riseIn(4),
+                accent = if (lowStock > 0) Warn else Good,
+            )
+        }
+
+        SectionLabel("Quick actions")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            ActionTile("Add product", true, Modifier.weight(1f).riseIn(5), onAddProduct)
+            ActionTile("View stock", true, Modifier.weight(1f).riseIn(6), onGoStock)
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            ActionTile("New sale", false, Modifier.weight(1f).riseIn(7), {})
+            ActionTile("New repair", false, Modifier.weight(1f).riseIn(8), {})
+        }
+        Text(
+            "Selling, repairs, money accounts and reports arrive in the next steps.",
+            color = Muted,
+            fontSize = 13.sp,
+        )
+    }
+}
+
+@Composable
+private fun StatCard(label: String, value: String, modifier: Modifier, accent: androidx.compose.ui.graphics.Color = Ink) {
+    GlassCard(modifier) {
+        Text(label, color = Muted, fontSize = 13.sp)
+        Text(value, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = accent)
+    }
+}
+
+@Composable
+private fun ActionTile(label: String, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    GlassCard(
+        modifier.graphicsLayer { alpha = if (enabled) 1f else 0.55f },
+        onClick = if (enabled) onClick else null,
+    ) {
+        Box(Modifier.fillMaxWidth().padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(label, fontWeight = FontWeight.SemiBold, color = if (enabled) Indigo else Muted)
+                if (!enabled) Text("Soon", color = Muted, fontSize = 12.sp)
+            }
+        }
+    }
+}

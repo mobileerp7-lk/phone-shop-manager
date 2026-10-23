@@ -1,0 +1,97 @@
+package app.phoneshop.manager.data
+
+import androidx.room.Entity
+import androidx.room.Index
+import androidx.room.PrimaryKey
+
+/** One row, id = 1. Everything shop-specific lives here so the app stays a template. */
+@Entity(tableName = "settings")
+data class ShopSettings(
+    @PrimaryKey val id: Int = 1,
+    val shopName: String = "",
+    val address: String = "",
+    val phone: String = "",
+    val countryCode: String = "LK",
+    val currencyCode: String = "LKR",
+    val taxEnabled: Boolean = false,
+    val taxNumber: String = "",
+    val useDriveBackup: Boolean = false,
+    val useSupabase: Boolean = false,
+    val setupDone: Boolean = false,
+)
+
+@Entity(tableName = "categories")
+data class Category(
+    @PrimaryKey val id: String,
+    val name: String,
+    val tracksImei: Boolean,
+    val hasWarranty: Boolean,
+    val sortOrder: Int,
+    val deletedAt: Long? = null,
+)
+
+/** A question asked when adding a product of this category. type: TEXT, NUMBER, CHOICE, YESNO. */
+@Entity(tableName = "category_fields", indices = [Index("categoryId")])
+data class CategoryField(
+    @PrimaryKey val id: String,
+    val categoryId: String,
+    val label: String,
+    val type: String,
+    val options: String,
+    val required: Boolean,
+    val sortOrder: Int,
+)
+
+@Entity(tableName = "products", indices = [Index("categoryId")])
+data class Product(
+    @PrimaryKey val id: String,
+    val categoryId: String,
+    val name: String,
+    val barcode: String,
+    /** Money is always whole minor units (cents / paisa), never floating point. */
+    val sellPrice: Long,
+    val minPrice: Long,
+    val warrantyMonths: Int,
+    val lowStockLevel: Int,
+    val photoPath: String?,
+    /** JSON object: category field id -> value. */
+    val attributesJson: String,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+)
+
+/** One physical phone tracked by IMEI, with the exact price paid for it. status: IN_STOCK or SOLD. */
+@Entity(
+    tableName = "stock_units",
+    indices = [Index("productId"), Index(value = ["imei1"], unique = true)],
+)
+data class StockUnit(
+    @PrimaryKey val id: String,
+    val productId: String,
+    val imei1: String,
+    val imei2: String,
+    val unitCost: Long,
+    val status: String,
+    val note: String,
+    val createdAt: Long,
+)
+
+/** A purchase batch of items without IMEI, each batch with its own buying price. */
+@Entity(tableName = "stock_batches", indices = [Index("productId")])
+data class StockBatch(
+    @PrimaryKey val id: String,
+    val productId: String,
+    val qty: Int,
+    val remaining: Int,
+    val unitCost: Long,
+    val createdAt: Long,
+)
+
+data class StockRow(
+    val productId: String,
+    val qty: Int,
+    val minCost: Long,
+    val maxCost: Long,
+    val totalCost: Long,
+)
