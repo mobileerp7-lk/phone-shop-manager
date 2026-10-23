@@ -130,9 +130,23 @@ private fun AppNav(repo: Repository, settings: ShopSettings) {
                 repo, settings, entry.arguments?.getString("id") ?: "",
                 onBack = { nav.popBackStack() },
                 onNewSale = { cart.requestTab = 1; nav.popBackStack("main", false) },
+                onReturn = { nav.navigate("return/${entry.arguments?.getString("id") ?: ""}") },
             )
         }
-        composable("bills") { BillsListScreen(repo, settings, onBack = { nav.popBackStack() }, onOpen = { nav.navigate("bill/$it") }) }
+        composable("bills") {
+            BillsListScreen(repo, settings, onBack = { nav.popBackStack() }, onOpen = { nav.navigate("bill/$it") }, onTradeIn = { nav.navigate("tradein") })
+        }
+        composable("tradein") { TradeInScreen(repo, settings, onBack = { nav.popBackStack() }) }
+        composable("adjust") { StockAdjustScreen(repo, settings, onBack = { nav.popBackStack() }) }
+        composable("quotes") {
+            QuotesScreen(repo, settings, cart, onBack = { nav.popBackStack() }, onOpenCart = { cart.requestTab = 1; nav.popBackStack("main", false) })
+        }
+        composable(
+            "return/{id}",
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { entry ->
+            ReturnScreen(repo, settings, entry.arguments?.getString("id") ?: "", onBack = { nav.popBackStack() })
+        }
         composable(
             "settle/{id}",
             arguments = listOf(navArgument("id") { type = NavType.StringType }),

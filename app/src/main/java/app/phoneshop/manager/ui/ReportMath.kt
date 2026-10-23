@@ -2,6 +2,8 @@ package app.phoneshop.manager.ui
 
 import app.phoneshop.manager.data.MoneyEntry
 import app.phoneshop.manager.data.Sale
+import app.phoneshop.manager.data.SaleReturn
+import app.phoneshop.manager.data.StockAdjustment
 import app.phoneshop.manager.data.SaleLine
 import java.time.LocalDate
 import java.time.ZoneId
@@ -26,6 +28,8 @@ data class ReportData(
     val newDebt: Long,
     val debtCollected: Long,
     val supplierPaid: Long,
+    val writeOffs: Long,
+    val refunds: Long,
     /** name, quantity, profit */
     val topItems: List<Triple<String, Int, Long>>,
 ) {
@@ -33,7 +37,7 @@ data class ReportData(
     val repairProfit get() = repairIncome - repairCost
     val serviceProfit get() = serviceIncome - serviceCost
     val revenue get() = productSales + repairIncome + serviceIncome
-    val netProfit get() = productProfit + repairProfit + serviceProfit - discounts + otherIncome - expenses
+    val netProfit get() = productProfit + repairProfit + serviceProfit - discounts + otherIncome - expenses - writeOffs
 }
 
 object ReportMath {
@@ -49,7 +53,11 @@ object ReportMath {
         lines: List<SaleLine>,
         entries: List<MoneyEntry>,
         typeNames: Map<String, String>,
+        returns: List<SaleReturn> = emptyList(),
+        adjustments: List<StockAdjustment> = emptyList(),
     ): ReportData {
+        val backs = returns.filter { it.createdAt in from until to }
+        val losses = adjustments.filter { it.createdAt in from until to }
         val bills = sales.filter { it.status == "DONE" && it.createdAt in from until to }
         val ids = bills.map { it.id }.toSet()
         val ls = lines.filter { it.saleId in ids }
@@ -68,8 +76,8 @@ object ReportMath {
             .take(5)
         return ReportData(
             bills = bills.size,
-            productSales = products.sumOf { it.lineTotal },
-            productCost = products.sumOf { it.costTotal },
+            productSales = products.sumOf { it.lineTotal } - backs.sumOf { it.refund },
+            productCost = products.sumOf { it.costTotal } - backs.sumOf { it.restockedCost },
             productItems = products.sumOf { it.qty },
             repairIncome = repairs.sumOf { it.lineTotal },
             repairCost = repairs.sumOf { it.costTotal },
@@ -85,6 +93,8 @@ object ReportMath {
             newDebt = bills.sumOf { it.due },
             debtCollected = live.filter { it.kind == "DEBT_PAID" }.sumOf { it.amount },
             supplierPaid = -live.filter { it.kind == "SUPPLIER_PAID" || it.kind == "PURCHASE_PAID" }.sumOf { it.amount },
+            writeOffs = losses.sumOf { it.costTotal },
+            refunds = backs.sumOf { it.refund },
             topItems = top,
         )
     }

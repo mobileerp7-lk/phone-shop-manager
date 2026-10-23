@@ -50,7 +50,7 @@ private val sections = listOf(
 object BuiltRoutes {
     val set = mutableSetOf(
         "products", "contacts/CUSTOMER", "contacts/SUPPLIER", "settings", "services",
-        "accounts", "money_entries", "transfers", "sell", "bills", "po", "purchases", "repairs", "reports", "dayclose",
+        "accounts", "money_entries", "transfers", "sell", "bills", "po", "purchases", "repairs", "reports", "dayclose", "quotes", "adjust",
     )
 }
 

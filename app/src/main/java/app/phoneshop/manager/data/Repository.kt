@@ -62,6 +62,7 @@ class Repository(private val db: AppDatabase) {
     private val purchaseDao = db.purchaseDao()
     private val repairDao = db.repairDao()
     private val dayCloseDao = db.dayCloseDao()
+    private val extrasDao = db.extrasDao()
 
     /** Never null once loaded; a shop that has not finished setup gets defaults. */
     val settings: Flow<ShopSettings> = settingsDao.observe().map { it ?: ShopSettings() }
@@ -161,6 +162,105 @@ class Repository(private val db: AppDatabase) {
     suspend fun deleteEntryType(id: String) = moneyDao.softDeleteType(id, System.currentTimeMillis())
 
     val dayCloses: Flow<List<DayClose>> = dayCloseDao.observe()
+    val saleReturns: Flow<List<SaleReturn>> = extrasDao.observeReturns()
+    val adjustments: Flow<List<StockAdjustment>> = extrasDao.observeAdjustments()
+    val quotes: Flow<List<Quote>> = extrasDao.observeQuotes()
+
+    suspend fun saveQuote(kind: String, customerId: String?, total: Long, discount: Long, lines: List<CartLine>): Int = db.withTransaction {
+        val settings = settingsDao.get() ?: ShopSettings()
+        val number = settings.nextQuoteNumber
+        settingsDao.save(settings.copy(nextQuoteNumber = number + 1))
+        val arr = org.json.JSONArray()
+        lines.forEach { l ->
+            arr.put(
+                org.json.JSONObject().put("kind", l.kind).put("productId", l.productId ?: "").put("name", l.name).put("qty", l.qty)
+                    .put("price", l.unitPrice).put("unitId", l.unitId ?: "").put("imei", l.imei).put("warranty", l.warrantyMonths)
+                    .put("tracks", l.tracksImei).put("minPrice", l.minPrice)
+            )
+        }
+        extrasDao.upsertQuote(Quote(UUID.randomUUID().toString(), kind, number, customerId, total, discount, arr.toString(), System.currentTimeMillis()))
+        number
+    }
+
+    fun quoteLines(q: Quote): List<CartLine> {
+        val arr = org.json.JSONArray(q.linesJson)
+        return (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            CartLine(
+                UUID.randomUUID().toString(), o.getString("kind"), o.optString("productId").ifEmpty { null }, o.getString("name"),
+                o.getInt("qty"), o.getLong("price"), o.optString("unitId").ifEmpty { null }, o.optString("imei"),
+                o.optInt("warranty"), o.optBoolean("tracks"), o.optLong("minPrice"),
+            )
+        }
+    }
+
+    suspend fun deleteQuote(id: String) = extrasDao.deleteQuote(id)
+
+    /** Writes off, or adds, stock. A negative qty removes goods (oldest first) and records their cost as a loss. */
+    suspend fun adjustStock(productId: String, name: String, tracksImei: Boolean, qty: Int, unitId: String?, addCost: Long, reason: String): String? = db.withTransaction {
+        val now = System.currentTimeMillis()
+        if (qty == 0) return@withTransaction "Enter how many."
+        if (qty < 0) {
+            if (tracksImei) {
+                val unit = unitId?.let { productDao.getUnit(it) }
+                if (unit == null || unit.status != "IN_STOCK") return@withTransaction "Choose a phone that is in stock."
+                productDao.upsertUnit(unit.copy(status = "WRITTEN_OFF", note = reason.trim()))
+                extrasDao.insertAdjustment(StockAdjustment(UUID.randomUUID().toString(), productId, name, 1, unit.unitCost, reason.trim(), now))
+            } else {
+                val cost = takeFromBatches(productId, -qty) ?: return@withTransaction "Not enough in stock to remove."
+                extrasDao.insertAdjustment(StockAdjustment(UUID.randomUUID().toString(), productId, name, -qty, cost, reason.trim(), now))
+            }
+        } else {
+            if (tracksImei) return@withTransaction "Add phones through Receive goods or Add stock, so each gets its IMEI."
+            insertBatch(productId, qty, addCost, now)
+        }
+        null
+    }
+
+    /**
+     * A customer brings items back from a bill. They are put back on the shelf unless damaged, and the customer is
+     * either paid from an account or has the amount taken off what they owe.
+     */
+    suspend fun returnItems(saleId: String, lineId: String, qty: Int, refund: Long, restock: Boolean, refundMode: String, accountId: String?, reason: String): String? = db.withTransaction {
+        val sale = saleDao.getSale(saleId) ?: return@withTransaction "Bill not found."
+        val line = saleDao.getLines(saleId).firstOrNull { it.id == lineId } ?: return@withTransaction "Line not found."
+        val already = extrasDao.returnedQty(lineId)
+        if (qty <= 0 || qty + already > line.qty) return@withTransaction "You can return at most ${line.qty - already} of this item."
+        if (refund < 0 || refund > line.unitPrice * qty) return@withTransaction "The refund is more than the price paid."
+        if (refundMode == "CASH" && accountId == null) return@withTransaction "Choose the account the refund is paid from."
+        if (refundMode == "BALANCE" && sale.customerId == null) return@withTransaction "This bill has no customer, so pay the refund in cash."
+        val now = System.currentTimeMillis()
+        var restoredCost = 0L
+        if (line.kind == "PRODUCT" && restock) {
+            if (line.unitId != null) {
+                productDao.getUnit(line.unitId)?.let { productDao.upsertUnit(it.copy(status = "IN_STOCK")); restoredCost = it.unitCost }
+            } else if (line.productId != null) {
+                restoredCost = line.costTotal * qty / line.qty
+                insertBatch(line.productId, qty, if (qty > 0) restoredCost / qty else 0L, now)
+            }
+        }
+        extrasDao.insertReturn(SaleReturn(UUID.randomUUID().toString(), saleId, lineId, line.name, qty, refund, restoredCost, refundMode, sale.customerId, reason.trim(), now))
+        if (refundMode == "CASH" && accountId != null && refund > 0) {
+            moneyDao.insertEntry(
+                newEntry("RETURN_REFUND", accountId, -refund, null, "Return on bill #${sale.billNo}: ${line.name}", UUID.randomUUID().toString())
+                    .copy(contactId = sale.customerId, refType = "SALE", refId = saleId)
+            )
+        }
+        null
+    }
+
+    /** Buys a used phone from a customer: it goes into stock with its IMEI and the price paid as its cost. */
+    suspend fun tradeIn(productId: String, imei1: String, imei2: String, cost: Long, accountId: String, customerId: String?, note: String): String? = db.withTransaction {
+        if (cost <= 0) return@withTransaction "Enter the price you pay."
+        validateUnits(listOf(UnitInput(imei1.trim(), imei2.trim())))?.let { return@withTransaction it }
+        val now = System.currentTimeMillis()
+        insertUnit(productId, UnitInput(imei1, imei2), cost, now)
+        moneyDao.insertEntry(
+            newEntry("TRADE_IN", accountId, -cost, null, "Trade-in ${note.trim()}", UUID.randomUUID().toString())
+                .copy(contactId = customerId, refType = "TRADEIN", refId = imei1.trim())
+        )
+        null
+    }
 
     /** Locks the day's cash count. The rest of the cash can be moved to another account with one tap afterwards. */
     suspend fun closeDay(date: String, expected: Long, counted: Long, reason: String, leftInDrawer: Long) {
@@ -388,13 +488,14 @@ class Repository(private val db: AppDatabase) {
     fun observeSaleLines(id: String): Flow<List<SaleLine>> = saleDao.observeLines(id)
 
     /** contact id -> what they owe the shop (customers) or what the shop owes them (suppliers). */
-    val contactBalances: Flow<Map<String, Long>> = combine(contacts, sales, entries, purchases) { people, bills, moves, bought ->
+    val contactBalances: Flow<Map<String, Long>> = combine(contacts, sales, entries, purchases, saleReturns) { people, bills, moves, bought, backs ->
         people.associate { p ->
             val billed = bills.filter { it.customerId == p.id && it.status == "DONE" }.sumOf { it.due } +
                 bought.filter { it.supplierId == p.id }.sumOf { it.due }
             val settled = moves.filter { it.contactId == p.id && it.voidedAt == null && (it.kind == "DEBT_PAID" || it.kind == "SUPPLIER_PAID") }
                 .sumOf { kotlin.math.abs(it.amount) }
-            p.id to (p.openingBalance + billed - settled)
+            val credited = backs.filter { it.customerId == p.id && it.refundMode == "BALANCE" }.sumOf { it.refund }
+            p.id to (p.openingBalance + billed - settled - credited)
         }
     }
 

@@ -133,6 +133,33 @@ interface MoneyDao {
 }
 
 @Dao
+interface ExtrasDao {
+    @Query("SELECT * FROM sale_returns ORDER BY createdAt DESC")
+    fun observeReturns(): Flow<List<SaleReturn>>
+
+    @Insert
+    suspend fun insertReturn(r: SaleReturn)
+
+    @Query("SELECT COALESCE(SUM(qty), 0) FROM sale_returns WHERE lineId = :lineId")
+    suspend fun returnedQty(lineId: String): Int
+
+    @Query("SELECT * FROM stock_adjustments ORDER BY createdAt DESC")
+    fun observeAdjustments(): Flow<List<StockAdjustment>>
+
+    @Insert
+    suspend fun insertAdjustment(a: StockAdjustment)
+
+    @Query("SELECT * FROM quotes ORDER BY createdAt DESC")
+    fun observeQuotes(): Flow<List<Quote>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertQuote(q: Quote)
+
+    @Query("DELETE FROM quotes WHERE id = :id")
+    suspend fun deleteQuote(id: String)
+}
+
+@Dao
 interface DayCloseDao {
     @Query("SELECT * FROM day_closes")
     fun observe(): Flow<List<DayClose>>
@@ -333,8 +360,11 @@ interface ProductDao {
         RepairJob::class,
         RepairPart::class,
         DayClose::class,
+        SaleReturn::class,
+        StockAdjustment::class,
+        Quote::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -348,6 +378,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun purchaseDao(): PurchaseDao
     abstract fun repairDao(): RepairDao
     abstract fun dayCloseDao(): DayCloseDao
+    abstract fun extrasDao(): ExtrasDao
 
     companion object {
         fun build(context: Context): AppDatabase =

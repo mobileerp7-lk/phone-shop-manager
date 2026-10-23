@@ -45,9 +45,11 @@ private class Inputs(
     val lines: List<app.phoneshop.manager.data.SaleLine>,
     val entries: List<app.phoneshop.manager.data.MoneyEntry>,
     val types: Map<String, String>,
+    val returns: List<app.phoneshop.manager.data.SaleReturn>,
+    val adjustments: List<app.phoneshop.manager.data.StockAdjustment>,
 ) {
     fun report(from: LocalDate, toExclusive: LocalDate) =
-        ReportMath.build(ReportMath.startOf(from), ReportMath.startOf(toExclusive), sales, lines, entries, types)
+        ReportMath.build(ReportMath.startOf(from), ReportMath.startOf(toExclusive), sales, lines, entries, types, returns, adjustments)
 }
 
 @Composable
@@ -56,7 +58,9 @@ private fun rememberInputs(repo: Repository): Inputs {
     val lines by repo.allSaleLines.collectAsState(initial = emptyList())
     val entries by repo.entries.collectAsState(initial = emptyList())
     val types by repo.entryTypes.collectAsState(initial = emptyList())
-    return Inputs(sales, lines, entries, types.associate { it.id to it.name })
+    val returns by repo.saleReturns.collectAsState(initial = emptyList())
+    val adjustments by repo.adjustments.collectAsState(initial = emptyList())
+    return Inputs(sales, lines, entries, types.associate { it.id to it.name }, returns, adjustments)
 }
 
 private fun signedMinus(v: Long, c: CurrencyInfo) = "− " + Money.format(v, c)
@@ -107,6 +111,7 @@ fun DailyScreen(repo: Repository, settings: ShopSettings, onBack: () -> Unit, on
             Line("Cost of items sold", signedMinus(r.productCost, currency), muted = true)
             Line("Repair parts used", signedMinus(r.repairCost + r.serviceCost, currency), muted = true)
             if (r.discounts > 0) Line("Discounts given", signedMinus(r.discounts, currency), muted = true)
+            if (r.writeOffs > 0) Line("Stock lost or damaged", signedMinus(r.writeOffs, currency), muted = true)
             Line("Expenses (${r.expenseCount})", signedMinus(r.expenses, currency), muted = true)
             Line("Profit today", Money.format(r.netProfit, currency), bold = true)
         }
@@ -271,6 +276,7 @@ fun ProfitLossScreen(repo: Repository, settings: ShopSettings, onBack: () -> Uni
             Line("Profit on repairs", Money.format(r.repairProfit, currency), bold = true)
             if (r.serviceIncome > 0) Line("Profit on other services", Money.format(r.serviceProfit, currency), bold = true)
             if (r.discounts > 0) Line("Discounts given", signedMinus(r.discounts, currency), muted = true)
+            if (r.writeOffs > 0) Line("Stock lost or damaged", signedMinus(r.writeOffs, currency), muted = true)
             if (r.otherIncome > 0) Line("Other income", Money.format(r.otherIncome, currency))
             Line("Shop expenses", signedMinus(r.expenses, currency))
             r.expenseByType.forEach { (name, v) -> Line("   $name", Money.format(v, currency), muted = true) }

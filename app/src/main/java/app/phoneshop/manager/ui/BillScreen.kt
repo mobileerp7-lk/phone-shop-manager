@@ -34,6 +34,7 @@ fun BillScreen(
     saleId: String,
     onBack: () -> Unit,
     onNewSale: () -> Unit,
+    onReturn: () -> Unit,
 ) {
     val sale by repo.observeSale(saleId).collectAsState(initial = null)
     val lines by repo.observeSaleLines(saleId).collectAsState(initial = emptyList())
@@ -99,6 +100,7 @@ fun BillScreen(
         }, Modifier.fillMaxWidth())
         Text("The share sheet lets you send the bill on WhatsApp, print it, or save it as a PDF.", color = Muted, fontSize = 12.sp)
         GlassButton("Start new sale", onNewSale, Modifier.fillMaxWidth())
+        if (!cancelled) GlassButton("Customer returns items", onReturn, Modifier.fillMaxWidth())
         if (!cancelled) GlassButton("Cancel this bill", { cancelling = true; reason = "" }, Modifier.fillMaxWidth(), danger = true)
         error?.let { Text(it, color = Bad) }
     }
@@ -122,11 +124,12 @@ private fun BillRow(label: String, value: String, bold: Boolean = false, color: 
 
 /** More → Bills and returns: every bill, newest first. */
 @Composable
-fun BillsListScreen(repo: Repository, settings: ShopSettings, onBack: () -> Unit, onOpen: (String) -> Unit) {
+fun BillsListScreen(repo: Repository, settings: ShopSettings, onBack: () -> Unit, onOpen: (String) -> Unit, onTradeIn: () -> Unit) {
     val sales by repo.sales.collectAsState(initial = emptyList())
     val contacts by repo.contacts.collectAsState(initial = emptyList())
     val currency = Locales.currency(settings.currencyCode)
-    ScreenScaffold("Bills", onBack) {
+    ScreenScaffold("Bills and returns", onBack) {
+        GlassButton("Trade-in: buy a used phone", onTradeIn, Modifier.fillMaxWidth())
         if (sales.isEmpty()) EmptyCard("No bills yet", "Bills you make in Sell appear here.")
         sales.forEach { s ->
             GlassCard(Modifier.fillMaxWidth(), onClick = { onOpen(s.id) }) {

@@ -99,6 +99,8 @@ fun MainShell(
                             "bills" -> onNavigate("bills")
                             "repairs" -> onNavigate("repairs")
                             "reports" -> onNavigate("reports")
+                            "quotes" -> onNavigate("quotes")
+                            "adjust" -> onNavigate("adjust")
                             "dayclose" -> onNavigate("dayclose")
                             "po" -> onNavigate("purchases/ORDERS")
                             "purchases" -> onNavigate("purchases/BILLS")

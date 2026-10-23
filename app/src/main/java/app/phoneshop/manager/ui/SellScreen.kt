@@ -184,6 +184,14 @@ fun SellScreen(
                 onPick = { picked -> cart.customerId = customers.firstOrNull { it.name == picked }?.id },
             )
             TextButton(onClick = { newCustomer = true }) { Text("+ Add customer", color = Indigo, fontWeight = FontWeight.SemiBold) }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                GlassButton("Hold", {
+                    scope.launch { repo.saveQuote("HELD", cart.customerId, total, discountMinor, cart.lines.toList()); cart.clear() }
+                }, Modifier.weight(1f))
+                GlassButton("Quotation", {
+                    scope.launch { repo.saveQuote("QUOTE", cart.customerId, total, discountMinor, cart.lines.toList()); message = "Quotation saved. Find it in More → Quotations." }
+                }, Modifier.weight(1f))
+            }
             GradientButton(
                 "Take payment ${Money.format(total, currency)}",
                 { if (discountMinor > subtotal) message = "The discount is more than the bill." else onPay() },

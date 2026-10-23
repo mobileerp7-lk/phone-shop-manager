@@ -28,6 +28,7 @@ data class ShopSettings(
     val taxRateBp: Int = 0,
     val nextPoNumber: Int = 1,
     val nextJobNumber: Int = 1,
+    val nextQuoteNumber: Int = 1,
 )
 
 @Entity(tableName = "categories")
@@ -329,4 +330,46 @@ data class DayClose(
     val reason: String,
     val leftInDrawer: Long,
     val closedAt: Long,
+)
+
+/** Items a customer brought back from a bill. refundMode: CASH (paid out of an account) or BALANCE (reduces what they owe). */
+@Entity(tableName = "sale_returns", indices = [Index("saleId"), Index("createdAt")])
+data class SaleReturn(
+    @PrimaryKey val id: String,
+    val saleId: String,
+    val lineId: String,
+    val name: String,
+    val qty: Int,
+    val refund: Long,
+    /** Cost of the goods put back on the shelf; 0 when they were not restocked (damaged). */
+    val restockedCost: Long,
+    val refundMode: String,
+    val customerId: String?,
+    val reason: String,
+    val createdAt: Long,
+)
+
+/** Stock lost, damaged or corrected. costTotal is what the written-off goods had cost. */
+@Entity(tableName = "stock_adjustments", indices = [Index("productId"), Index("createdAt")])
+data class StockAdjustment(
+    @PrimaryKey val id: String,
+    val productId: String,
+    val name: String,
+    val qty: Int,
+    val costTotal: Long,
+    val reason: String,
+    val createdAt: Long,
+)
+
+/** A saved cart. kind: QUOTE (a price offer) or HELD (a sale put on hold). linesJson holds the cart lines. */
+@Entity(tableName = "quotes", indices = [Index("kind")])
+data class Quote(
+    @PrimaryKey val id: String,
+    val kind: String,
+    val number: Int,
+    val customerId: String?,
+    val total: Long,
+    val discount: Long,
+    val linesJson: String,
+    val createdAt: Long,
 )
