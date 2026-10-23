@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.CircleShape
@@ -344,8 +346,8 @@ fun SettleScreen(repo: Repository, settings: ShopSettings, contactId: String, on
             GlassChip("Half", false) { amount = Money.toInput(owed / 2) }
         }
         SectionLabel(if (supplier) "Paid from" else "Received into")
-        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            androidx.compose.foundation.lazy.items(views) { v -> GlassChip(v.account.name, v.account.id == chosen) { accountId = v.account.id } }
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(views) { v -> GlassChip(v.account.name, v.account.id == chosen) { accountId = v.account.id } }
         }
         GlassCard(Modifier.fillMaxWidth()) {
             Text(if (supplier) "Still owed after this" else "Still owes after this", color = Muted, fontSize = 13.sp)
