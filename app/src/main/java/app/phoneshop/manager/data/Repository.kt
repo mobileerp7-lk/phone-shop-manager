@@ -8,6 +8,9 @@ import java.util.UUID
 
 data class StockInfo(val qty: Int, val minCost: Long, val maxCost: Long, val totalCost: Long)
 
+/** An account with its current balance and what moved today. */
+data class AccountView(val account: Account, val balance: Long, val todayIn: Long, val todayOut: Long)
+
 data class UnitInput(val imei1: String, val imei2: String)
 
 fun formatCode(prefix: String, n: Int): String =
@@ -21,6 +24,7 @@ class Repository(private val db: AppDatabase) {
     private val productDao = db.productDao()
     private val serviceDao = db.serviceDao()
     private val contactDao = db.contactDao()
+    private val moneyDao = db.moneyDao()
 
     /** Never null once loaded; a shop that has not finished setup gets defaults. */
     val settings: Flow<ShopSettings> = settingsDao.observe().map { it ?: ShopSettings() }
@@ -29,6 +33,95 @@ class Repository(private val db: AppDatabase) {
     val products: Flow<List<Product>> = productDao.observeProducts()
     val services: Flow<List<Service>> = serviceDao.observe()
     val contacts: Flow<List<Contact>> = contactDao.observeAll()
+
+    val accounts: Flow<List<Account>> = moneyDao.observeAccounts()
+    val entryTypes: Flow<List<EntryType>> = moneyDao.observeTypes()
+    val entries: Flow<List<MoneyEntry>> = moneyDao.observeEntries()
+
+    val accountViews: Flow<List<AccountView>> = combine(accounts, entries) { accs, all ->
+        val dayStart = startOfToday()
+        accs.map { a ->
+            val mine = all.filter { it.accountId == a.id && it.voidedAt == null }
+            val today = mine.filter { it.entryDate >= dayStart }
+            AccountView(
+                a,
+                a.openingBalance + mine.sumOf { it.amount },
+                today.filter { it.amount > 0 }.sumOf { it.amount },
+                -today.filter { it.amount < 0 }.sumOf { it.amount },
+            )
+        }
+    }
+
+    private fun startOfToday(): Long = java.time.LocalDate.now()
+        .atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+
+    private fun newEntry(kind: String, accountId: String, amount: Long, typeId: String?, note: String, group: String) =
+        MoneyEntry(
+            id = UUID.randomUUID().toString(), kind = kind, accountId = accountId, amount = amount,
+            typeId = typeId, contactId = null, refType = "", refId = "", groupId = group,
+            note = note.trim(), entryDate = System.currentTimeMillis(), createdAt = System.currentTimeMillis(),
+        )
+
+    /** Money out for a shop cost. Returns an error message or null. */
+    suspend fun recordExpense(accountId: String, typeId: String?, amount: Long, note: String): String? {
+        if (amount <= 0) return "Enter an amount above zero."
+        moneyDao.insertEntry(newEntry("EXPENSE", accountId, -amount, typeId, note, UUID.randomUUID().toString()))
+        return null
+    }
+
+    suspend fun recordIncome(accountId: String, typeId: String?, amount: Long, note: String): String? {
+        if (amount <= 0) return "Enter an amount above zero."
+        moneyDao.insertEntry(newEntry("INCOME", accountId, amount, typeId, note, UUID.randomUUID().toString()))
+        return null
+    }
+
+    /** Money the owner puts into or takes out of the shop. Not income and not an expense. */
+    suspend fun recordOwner(accountId: String, amount: Long, putIn: Boolean, note: String): String? {
+        if (amount <= 0) return "Enter an amount above zero."
+        val kind = if (putIn) "OWNER_IN" else "OWNER_OUT"
+        moneyDao.insertEntry(newEntry(kind, accountId, if (putIn) amount else -amount, null, note, UUID.randomUUID().toString()))
+        return null
+    }
+
+    /** Moves the shop's own money between two accounts. Profit does not change. */
+    suspend fun recordTransfer(fromId: String, toId: String, amount: Long, note: String): String? = db.withTransaction {
+        if (amount <= 0) return@withTransaction "Enter an amount above zero."
+        if (fromId == toId) return@withTransaction "Choose two different accounts."
+        val group = UUID.randomUUID().toString()
+        moneyDao.insertEntry(newEntry("TRANSFER", fromId, -amount, null, note, group))
+        moneyDao.insertEntry(newEntry("TRANSFER", toId, amount, null, note, group))
+        null
+    }
+
+    /** Cancels an entry (and its other half for transfers). It stays in the records with the reason. */
+    suspend fun voidEntry(groupId: String, reason: String) =
+        moneyDao.voidGroup(groupId, System.currentTimeMillis(), reason.trim())
+
+    suspend fun saveAccount(existing: Account?, name: String, type: String, detail: String, opening: Long) {
+        moneyDao.upsertAccount(
+            Account(
+                existing?.id ?: "acc_" + UUID.randomUUID().toString().take(8),
+                name.trim(), type, detail.trim(), opening,
+                existing?.sortOrder ?: (System.currentTimeMillis() / 1000).toInt(),
+            )
+        )
+    }
+
+    /** Only an account with no entries can be removed. Returns an error or null. */
+    suspend fun deleteAccount(id: String): String? {
+        if (moneyDao.entryCountForAccount(id) > 0) return "This account has money entries, so it cannot be removed."
+        moneyDao.softDeleteAccount(id, System.currentTimeMillis())
+        return null
+    }
+
+    suspend fun saveEntryType(existing: EntryType?, name: String, kind: String) {
+        moneyDao.upsertType(
+            EntryType(existing?.id ?: "type_" + UUID.randomUUID().toString().take(8), name.trim(), kind,
+                existing?.sortOrder ?: (System.currentTimeMillis() / 1000).toInt())
+        )
+    }
+
+    suspend fun deleteEntryType(id: String) = moneyDao.softDeleteType(id, System.currentTimeMillis())
 
     fun observeContact(id: String): Flow<Contact?> = contactDao.observe(id)
     suspend fun getContact(id: String): Contact? = contactDao.get(id)
@@ -132,9 +225,12 @@ class Repository(private val db: AppDatabase) {
     suspend fun saveSettings(settings: ShopSettings) = settingsDao.save(settings)
 
     suspend fun seedIfEmpty() {
-        if (categoryDao.count() > 0) return
-        categoryDao.insertCategories(SeedData.categories)
-        categoryDao.insertFields(SeedData.fields)
+        if (categoryDao.count() == 0) {
+            categoryDao.insertCategories(SeedData.categories)
+            categoryDao.insertFields(SeedData.fields)
+        }
+        if (moneyDao.accountCount() == 0) SeedData.accounts.forEach { moneyDao.upsertAccount(it) }
+        if (moneyDao.typeCount() == 0) SeedData.entryTypes.forEach { moneyDao.upsertType(it) }
     }
 
     fun observeProduct(id: String): Flow<Product?> = productDao.observeProduct(id)

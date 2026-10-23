@@ -98,6 +98,19 @@ private fun AppNav(repo: Repository, settings: ShopSettings) {
         composable("settings") {
             SettingsScreen(repo, settings, onBack = { nav.popBackStack() }, onNavigate = { nav.navigate(it) })
         }
+        composable("entry_types") { EntryTypesScreen(repo, onBack = { nav.popBackStack() }) }
+        composable(
+            "money_entry/{kind}",
+            arguments = listOf(navArgument("kind") { type = NavType.StringType }),
+        ) { entry ->
+            MoneyEntryScreen(repo, settings, entry.arguments?.getString("kind") ?: "EXPENSE", onBack = { nav.popBackStack() })
+        }
+        composable(
+            "statement/{id}",
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { entry ->
+            StatementScreen(repo, settings, entry.arguments?.getString("id") ?: "ALL", onBack = { nav.popBackStack() })
+        }
         composable("services") { ServicesScreen(repo, settings, onBack = { nav.popBackStack() }) }
         composable("categories") { CategoriesScreen(repo, onBack = { nav.popBackStack() }) }
         composable(

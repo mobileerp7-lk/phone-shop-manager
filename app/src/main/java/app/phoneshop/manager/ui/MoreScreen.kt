@@ -48,7 +48,10 @@ private val sections = listOf(
 
 /** Routes that are built. Everything else shows dimmed with "Soon". */
 object BuiltRoutes {
-    val set = mutableSetOf("products", "contacts/CUSTOMER", "contacts/SUPPLIER", "settings", "services")
+    val set = mutableSetOf(
+        "products", "contacts/CUSTOMER", "contacts/SUPPLIER", "settings", "services",
+        "accounts", "money_entries", "transfers",
+    )
 }
 
 /** The "More" tab, laid out like the wireframe menu. */

@@ -95,7 +95,8 @@ fun SettingsScreen(
         SectionLabel("Stock and money")
         NavRow("Categories and questions", "", { onNavigate("categories") })
         NavRow("Services and charges", services.size.toString(), { onNavigate("services") })
-        NavRow("Money accounts", "Soon", null)
+        NavRow("Money accounts", "", { onNavigate("accounts") })
+        NavRow("Expense and income types", "", { onNavigate("entry_types") })
         NavRow("Stock cost method (no-IMEI items)", "Average", null)
 
         SectionLabel("Selling")

@@ -91,6 +91,48 @@ interface ContactDao {
 }
 
 @Dao
+interface MoneyDao {
+    @Query("SELECT * FROM accounts WHERE deletedAt IS NULL ORDER BY sortOrder, name")
+    fun observeAccounts(): Flow<List<Account>>
+
+    @Query("SELECT * FROM accounts WHERE id = :id")
+    suspend fun getAccount(id: String): Account?
+
+    @Query("SELECT COUNT(*) FROM accounts")
+    suspend fun accountCount(): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAccount(account: Account)
+
+    @Query("UPDATE accounts SET deletedAt = :time WHERE id = :id")
+    suspend fun softDeleteAccount(id: String, time: Long)
+
+    @Query("SELECT COUNT(*) FROM money_entries WHERE accountId = :id AND voidedAt IS NULL")
+    suspend fun entryCountForAccount(id: String): Int
+
+    @Query("SELECT * FROM entry_types WHERE deletedAt IS NULL ORDER BY kind, sortOrder, name")
+    fun observeTypes(): Flow<List<EntryType>>
+
+    @Query("SELECT COUNT(*) FROM entry_types")
+    suspend fun typeCount(): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertType(type: EntryType)
+
+    @Query("UPDATE entry_types SET deletedAt = :time WHERE id = :id")
+    suspend fun softDeleteType(id: String, time: Long)
+
+    @Query("SELECT * FROM money_entries ORDER BY entryDate DESC, createdAt DESC")
+    fun observeEntries(): Flow<List<MoneyEntry>>
+
+    @Insert
+    suspend fun insertEntry(entry: MoneyEntry)
+
+    @Query("UPDATE money_entries SET voidedAt = :time, voidReason = :reason WHERE groupId = :groupId AND voidedAt IS NULL")
+    suspend fun voidGroup(groupId: String, time: Long, reason: String)
+}
+
+@Dao
 interface ProductDao {
     @Query("SELECT * FROM products WHERE deletedAt IS NULL ORDER BY updatedAt DESC")
     fun observeProducts(): Flow<List<Product>>
@@ -159,8 +201,11 @@ interface ProductDao {
         StockBatch::class,
         Service::class,
         Contact::class,
+        Account::class,
+        EntryType::class,
+        MoneyEntry::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -169,6 +214,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun serviceDao(): ServiceDao
     abstract fun contactDao(): ContactDao
+    abstract fun moneyDao(): MoneyDao
 
     companion object {
         fun build(context: Context): AppDatabase =

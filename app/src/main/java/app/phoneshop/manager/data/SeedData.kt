@@ -2,6 +2,25 @@ package app.phoneshop.manager.data
 
 /** Ready-made categories and questions. The owner can change them later (Settings). */
 object SeedData {
+    val accounts = listOf(
+        Account("acc_cash", "Cash drawer", "CASH", "", 0L, 0),
+        Account("acc_bank", "Bank account", "BANK", "", 0L, 1),
+        Account("acc_wallet", "Mobile wallet", "WALLET", "", 0L, 2),
+    )
+
+    private fun t(id: String, name: String, kind: String, order: Int) = EntryType("type_$id", name, kind, order)
+
+    val entryTypes = listOf(
+        t("rent", "Rent", "EXPENSE", 0),
+        t("salary", "Salary", "EXPENSE", 1),
+        t("electricity", "Electricity and water", "EXPENSE", 2),
+        t("tea", "Tea and snacks", "EXPENSE", 3),
+        t("transport", "Transport", "EXPENSE", 4),
+        t("other_exp", "Other expense", "EXPENSE", 5),
+        t("commission", "Commission", "INCOME", 0),
+        t("other_inc", "Other income", "INCOME", 1),
+    )
+
     val categories = listOf(
         Category("cat_phone", "Phone", tracksImei = true, hasWarranty = true, sortOrder = 0),
         Category("cat_accessory", "Accessory", tracksImei = false, hasWarranty = false, sortOrder = 1),

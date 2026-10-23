@@ -133,3 +133,52 @@ data class Contact(
     val updatedAt: Long,
     val deletedAt: Long? = null,
 )
+
+/** A place the shop's money sits: cash drawer, bank account, mobile wallet. type: CASH, BANK, WALLET. */
+@Entity(tableName = "accounts")
+data class Account(
+    @PrimaryKey val id: String,
+    val name: String,
+    val type: String,
+    /** For example the last digits of a bank account. */
+    val detail: String,
+    val openingBalance: Long,
+    val sortOrder: Int,
+    val deletedAt: Long? = null,
+)
+
+/** A reason for money going out (rent, salary ...) or coming in (commission ...). kind: EXPENSE or INCOME. */
+@Entity(tableName = "entry_types")
+data class EntryType(
+    @PrimaryKey val id: String,
+    val name: String,
+    val kind: String,
+    val sortOrder: Int,
+    val deletedAt: Long? = null,
+)
+
+/**
+ * One movement on one account. amount is signed: plus puts money in, minus takes it out.
+ * kind: EXPENSE, INCOME, TRANSFER, OWNER_IN, OWNER_OUT (later: SALE, DEBT_PAID, SUPPLIER_PAID).
+ * A transfer is two entries that share a groupId. Entries are never deleted, only voided.
+ */
+@Entity(
+    tableName = "money_entries",
+    indices = [Index("accountId"), Index("entryDate"), Index("groupId")],
+)
+data class MoneyEntry(
+    @PrimaryKey val id: String,
+    val kind: String,
+    val accountId: String,
+    val amount: Long,
+    val typeId: String?,
+    val contactId: String?,
+    val refType: String,
+    val refId: String,
+    val groupId: String,
+    val note: String,
+    val entryDate: Long,
+    val createdAt: Long,
+    val voidedAt: Long? = null,
+    val voidReason: String = "",
+)
