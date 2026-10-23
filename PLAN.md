@@ -47,6 +47,15 @@ added later without a rewrite.
 - Offline-only mode works with no account at all, so a very small shop can
   start without any setup.
 
+### Phone-only mode and Google Drive backup (Faiz, 23 Oct)
+
+A shop can run **on this phone only** with no Supabase. For safety it connects to its own **Google Drive** for backup:
+- Sign in with Google once; the app saves a daily backup (data and product/repair photos) to a private app folder in the owner's Drive (Drive `appdata` scope, so the app cannot see any other Drive files). Also a "Back up now" button, over Wi-Fi by default.
+- "Restore from Google Drive" brings everything back on a new or reset phone.
+- **Limits, stated plainly in the app:** this is backup and restore only. It is not live sharing: two phones cannot use the same shop data at the same time, and changes made after the last backup are lost if the phone is lost. Shops that need several phones or staff logins use Supabase instead.
+- Switching later from phone-only to Supabase imports the existing data.
+- No secrets: only a public Google sign-in client ID ships in the app.
+
 ### Look and feel (Faiz, 23 Oct)
 
 Modern **gradient + glassmorphism** design with purposeful motion:
