@@ -31,9 +31,9 @@ object CloudBackup {
             .putString("email", c.email.trim()).putString("password", c.password).apply()
     }
 
-    private class Session(val token: String, val userId: String)
+    class Session(val token: String, val userId: String)
 
-    private fun call(method: String, url: String, headers: Map<String, String>, body: ByteArray? = null): Pair<Int, ByteArray> {
+    fun call(method: String, url: String, headers: Map<String, String>, body: ByteArray? = null): Pair<Int, ByteArray> {
         val c = URL(url).openConnection() as HttpURLConnection
         c.requestMethod = method
         c.connectTimeout = 20000
@@ -92,7 +92,7 @@ object CloudBackup {
         return true
     }
 
-    private fun signIn(c: Config): Session {
+    fun signIn(c: Config): Session {
         val body = JSONObject().put("email", c.email).put("password", c.password).toString().toByteArray()
         val (code, bytes) = call(
             "POST", "${c.url}/auth/v1/token?grant_type=password",

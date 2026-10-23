@@ -212,6 +212,9 @@ class Repository(private val db: AppDatabase) {
         db.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(FULL)").use { it.moveToFirst() }
     }
 
+    /** The raw database, for the sync engine. */
+    fun rawDb(): AppDatabase = db
+
     fun schemaVersion(): Int = db.openHelper.writableDatabase.version
 
     fun close() = db.close()
@@ -401,7 +404,7 @@ class Repository(private val db: AppDatabase) {
     /** Puts a part back on the shelf at the cost it was taken at. */
     suspend fun removeRepairPart(partId: String) = db.withTransaction {
         val p = repairDao.getPart(partId) ?: return@withTransaction
-        productDao.upsertBatch(StockBatch(UUID.randomUUID().toString(), p.productId, p.qty, p.qty, if (p.qty > 0) p.costTotal / p.qty else 0L, System.currentTimeMillis()))
+        productDao.upsertBatch(StockBatch("partback-$partId", p.productId, p.qty, p.qty, if (p.qty > 0) p.costTotal / p.qty else 0L, System.currentTimeMillis()))
         repairDao.deletePart(partId)
     }
 

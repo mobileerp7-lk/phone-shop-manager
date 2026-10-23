@@ -63,28 +63,20 @@ fun AppRoot(repo: Repository) {
             if (ok) repo.saveSettings(repo.currentSettings().copy(lastBackupAt = System.currentTimeMillis()))
         }
     }
-    // Phone-to-phone: the main phone sends its data online, a viewer phone refreshes from it.
-    androidx.compose.runtime.LaunchedEffect(settings?.useSupabase) {
-        if (settings?.useSupabase != true) return@LaunchedEffect
+    // Live sharing: every few seconds this phone sends its changes and fetches the other phones' changes.
+    androidx.compose.runtime.LaunchedEffect(settings?.setupDone) {
+        if (settings?.setupDone != true) return@LaunchedEffect
         while (true) {
-            val mode = app.phoneshop.manager.util.Prefs.syncMode(context)
-            if (mode == "MAIN") {
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { app.phoneshop.manager.util.CloudBackup.pushIfChanged(context, repo) }
-            } else if (mode == "VIEWER") {
-                val pulled = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    val c = app.phoneshop.manager.util.CloudBackup.load(context)
-                    val v = if (c.ready) app.phoneshop.manager.util.CloudBackup.onlineVersion(c) else null
-                    if (v != null && v != app.phoneshop.manager.util.Prefs.syncEtag(context)) {
-                        val (file, _) = app.phoneshop.manager.util.CloudBackup.download(context, c)
-                        if (file != null) {
-                            val err = file.inputStream().use { app.phoneshop.manager.util.Backup.restore(context, repo, it) }
-                            if (err == null) { app.phoneshop.manager.util.Prefs.setSyncEtag(context, v); true } else false
-                        } else false
-                    } else false
+            if (app.phoneshop.manager.util.Prefs.shopId(context).isNotBlank()) {
+                val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    app.phoneshop.manager.util.SyncEngine.syncOnce(context, repo)
                 }
-                if (pulled) app.phoneshop.manager.util.Backup.restart(context)
+                app.phoneshop.manager.util.Prefs.setSyncStatus(
+                    context,
+                    if (result == null) "Last shared " + java.time.LocalTime.now().withNano(0) else "Waiting: $result",
+                )
             }
-            kotlinx.coroutines.delay(3 * 60_000L)
+            kotlinx.coroutines.delay(20_000L)
         }
     }
     val needsLogin = people != null && settings != null && settings.setupDone &&
@@ -105,15 +97,6 @@ fun AppRoot(repo: Repository) {
             LoginScreen(repo, people) { s -> Session.staff = s; repo.actorName = s.name }
         } else {
             androidx.compose.foundation.layout.Column(Modifier.fillMaxSize()) {
-                if (app.phoneshop.manager.util.Prefs.syncMode(context) == "VIEWER") {
-                    Text(
-                        "VIEW ONLY phone: changes here are replaced by the main phone",
-                        Modifier.fillMaxWidth().background(Warn).statusBarsPadding().padding(6.dp),
-                        color = androidx.compose.ui.graphics.Color.White,
-                        fontSize = 12.sp,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    )
-                }
                 Box(Modifier.weight(1f)) { AppNav(repo, settings) }
             }
         }

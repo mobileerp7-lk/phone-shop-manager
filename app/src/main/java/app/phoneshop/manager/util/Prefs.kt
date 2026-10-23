@@ -32,4 +32,19 @@ object Prefs {
 
     fun language(c: Context): String = p(c).getString("language", "en") ?: "en"
     fun setLanguage(c: Context, v: String) = p(c).edit().putString("language", v).apply()
+
+    /** The online shop this phone shares data with, or blank when live sharing is off. */
+    fun shopId(c: Context): String = p(c).getString("shopId", "") ?: ""
+    fun setShopId(c: Context, v: String) = p(c).edit().putString("shopId", v).apply()
+    fun deviceId(c: Context): String {
+        val have = p(c).getString("deviceId", "") ?: ""
+        if (have.isNotBlank()) return have
+        val id = java.util.UUID.randomUUID().toString()
+        p(c).edit().putString("deviceId", id).apply()
+        return id
+    }
+    fun lastSeq(c: Context): Long = p(c).getLong("lastSeq", 0L)
+    fun setLastSeq(c: Context, v: Long) = p(c).edit().putLong("lastSeq", v).apply()
+    fun syncStatus(c: Context): String = p(c).getString("syncStatus", "") ?: ""
+    fun setSyncStatus(c: Context, v: String) = p(c).edit().putString("syncStatus", v).apply()
 }

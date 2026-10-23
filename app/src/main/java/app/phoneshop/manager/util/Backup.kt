@@ -55,6 +55,7 @@ object Backup {
      * (the caller then restarts the app).
      */
     fun restore(context: Context, repo: Repository, input: InputStream): String? {
+        if (Prefs.shopId(context).isNotBlank()) return "Live sharing is on. Turn it off first, otherwise the shop's online data would bring the old records back."
         val temp = File(context.cacheDir, "restore").apply { deleteRecursively(); mkdirs() }
         try {
             var hasDb = false

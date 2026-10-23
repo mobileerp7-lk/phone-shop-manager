@@ -22,6 +22,7 @@ import app.phoneshop.manager.data.ShopSettings
 import app.phoneshop.manager.util.Backup
 import app.phoneshop.manager.util.CloudBackup
 import app.phoneshop.manager.util.Prefs
+import app.phoneshop.manager.util.SyncEngine
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import kotlinx.coroutines.Dispatchers
@@ -107,24 +108,42 @@ fun CloudScreen(repo: Repository, settings: ShopSettings, onBack: () -> Unit) {
                 if (file != null) { confirmRestore = file; "Found a backup." } else err
             }
         }, Modifier.fillMaxWidth(), enabled = !busy && settings.useSupabase)
-        SectionLabel("Two or more phones")
+        SectionLabel("Share with other phones (live)")
         GlassCard(Modifier.fillMaxWidth()) {
-            Text("One main phone, other phones only look", fontWeight = FontWeight.SemiBold)
+            Text("Several phones, one shop", fontWeight = FontWeight.SemiBold)
             Text(
-                "Only the MAIN phone should make sales and changes. It sends its data online every few minutes. " +
-                    "A VIEWER phone (for example the manager's) refreshes itself from that copy and shows stock, sales and reports. " +
-                    "Anything typed on a viewer phone is replaced at the next refresh, so never sell on a viewer. " +
-                    "This way two phones can never fight over the same stock or money.",
+                "Every phone keeps working without internet. When there is internet, each phone sends its changes and fetches the others' about every 20 seconds. " +
+                    "If two phones change the same record, the newer change wins. Stock is recalculated from the records, so it stays correct. " +
+                    "Set the phones' clocks to automatic time.",
                 color = Muted, fontSize = 13.sp,
             )
         }
-        var mode by remember { mutableStateOf(Prefs.syncMode(context)) }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            GlassChip("Off", mode == "OFF") { mode = "OFF"; Prefs.setSyncMode(context, "OFF") }
-            GlassChip("Main phone", mode == "MAIN") { mode = "MAIN"; Prefs.setSyncMode(context, "MAIN"); Prefs.setSyncMark(context, 0L) }
-            GlassChip("Viewer phone", mode == "VIEWER") { mode = "VIEWER"; Prefs.setSyncMode(context, "VIEWER") }
+        var sharing by remember { mutableStateOf(Prefs.shopId(context).isNotBlank()) }
+        var slot by remember { mutableStateOf(2) }
+        if (!sharing) {
+            GradientButton("This is the FIRST phone: share my data", {
+                val c = config()
+                run {
+                    val err = withContext(Dispatchers.IO) { SyncEngine.startAsMain(context, c, settings.shopName) }
+                    if (err == null) { sharing = true; "Live sharing is on. Your data goes online in the next minute." } else err
+                }
+            }, Modifier.fillMaxWidth(), enabled = !busy && settings.useSupabase)
+            Text("Another phone joining? Pick its number (each phone needs its own, so bill numbers never clash):", color = Muted, fontSize = 13.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                for (n in 2..5) GlassChip("Phone $n", slot == n) { slot = n }
+            }
+            GlassButton("Join the shop (replaces this phone's data)", {
+                val c = config()
+                run {
+                    val err = withContext(Dispatchers.IO) { SyncEngine.joinShop(context, repo, c, slot) }
+                    if (err == null) { sharing = true; "Joined. The shop's data arrives in the next minute." } else err
+                }
+            }, Modifier.fillMaxWidth(), enabled = !busy && settings.useSupabase)
+        } else {
+            Text(Prefs.syncStatus(context).ifBlank { "Starting..." }, color = Good, fontSize = 13.sp)
+            GlassButton("Turn live sharing off on this phone", { SyncEngine.stop(context); sharing = false; status = "Sharing is off." }, Modifier.fillMaxWidth())
         }
-        if (mode != "OFF" && !settings.useSupabase) Text("Connect first (steps above) for this to work.", color = Warn, fontSize = 13.sp)
+        if (!settings.useSupabase) Text("Connect first (steps above) for this to work.", color = Warn, fontSize = 13.sp)
         status?.let { Text(it, color = Muted, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp)) }
     }
 
