@@ -58,6 +58,7 @@ private fun kindLabel(kind: String) = when (kind) {
     "SALE" -> "Sale"
     "DEBT_PAID" -> "Debt collected"
     "SUPPLIER_PAID" -> "Paid supplier"
+    "PURCHASE_PAID" -> "Paid for stock"
     else -> kind
 }
 

@@ -26,6 +26,7 @@ data class ShopSettings(
     val nextBillNumber: Int = 1001,
     /** Tax rate in hundredths of a percent (1800 = 18%). Prices already include tax. */
     val taxRateBp: Int = 0,
+    val nextPoNumber: Int = 1,
 )
 
 @Entity(tableName = "categories")
@@ -225,4 +226,52 @@ data class SaleLine(
     val unitId: String?,
     val imei: String,
     val warrantyMonths: Int,
+)
+
+/** An order sent to a supplier. It changes no stock or money until goods arrive. status: DRAFT, SENT, PART, RECEIVED, CANCELLED. */
+@Entity(tableName = "purchase_orders", indices = [Index("supplierId")])
+data class PurchaseOrder(
+    @PrimaryKey val id: String,
+    val poNo: Int,
+    val supplierId: String,
+    val status: String,
+    val orderDate: Long,
+    val expectedDate: Long?,
+    val note: String,
+    val createdAt: Long,
+)
+
+@Entity(tableName = "po_lines", indices = [Index("poId")])
+data class PoLine(
+    @PrimaryKey val id: String,
+    val poId: String,
+    val productId: String,
+    val name: String,
+    val qty: Int,
+    val unitCost: Long,
+    val receivedQty: Int = 0,
+)
+
+/** Goods that arrived, with the supplier's bill. due is added to what the shop owes the supplier. */
+@Entity(tableName = "purchases", indices = [Index("supplierId"), Index("poId")])
+data class Purchase(
+    @PrimaryKey val id: String,
+    val poId: String?,
+    val supplierId: String,
+    val billNo: String,
+    val total: Long,
+    val paid: Long,
+    val due: Long,
+    val payBy: Long?,
+    val createdAt: Long,
+)
+
+@Entity(tableName = "purchase_lines", indices = [Index("purchaseId")])
+data class PurchaseLine(
+    @PrimaryKey val id: String,
+    val purchaseId: String,
+    val productId: String,
+    val name: String,
+    val qty: Int,
+    val unitCost: Long,
 )

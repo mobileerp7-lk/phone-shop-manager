@@ -248,12 +248,12 @@ private fun TotalRow(label: String, value: String, big: Boolean = false) {
 }
 
 @Composable
-fun QuickCustomerDialog(repo: Repository, onClose: () -> Unit, onSaved: (String) -> Unit) {
+fun QuickCustomerDialog(repo: Repository, kind: String = CUSTOMER, onClose: () -> Unit, onSaved: (String) -> Unit) {
     val scope = rememberCoroutineScope()
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
-    EditDialog("New customer", name.isNotBlank(), onClose, {
-        scope.launch { onSaved(repo.saveContact(null, CUSTOMER, name, phone, "", "", 0L)); onClose() }
+    EditDialog(if (kind == SUPPLIER) "New supplier" else "New customer", name.isNotBlank(), onClose, {
+        scope.launch { onSaved(repo.saveContact(null, kind, name, phone, "", "", 0L)); onClose() }
     }) {
         GlassField(name, { name = it }, "Name *")
         GlassField(phone, { phone = it }, "Phone / WhatsApp", keyboard = KeyboardType.Phone)

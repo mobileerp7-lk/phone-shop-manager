@@ -133,6 +133,45 @@ interface MoneyDao {
 }
 
 @Dao
+interface PurchaseDao {
+    @Query("SELECT * FROM purchase_orders ORDER BY createdAt DESC")
+    fun observeOrders(): Flow<List<PurchaseOrder>>
+
+    @Query("SELECT * FROM purchase_orders WHERE id = :id")
+    fun observeOrder(id: String): Flow<PurchaseOrder?>
+
+    @Query("SELECT * FROM purchase_orders WHERE id = :id")
+    suspend fun getOrder(id: String): PurchaseOrder?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertOrder(order: PurchaseOrder)
+
+    @Query("SELECT * FROM po_lines")
+    fun observeAllPoLines(): Flow<List<PoLine>>
+
+    @Query("SELECT * FROM po_lines WHERE poId = :id")
+    suspend fun getPoLines(id: String): List<PoLine>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertPoLine(line: PoLine)
+
+    @Query("DELETE FROM po_lines WHERE poId = :id")
+    suspend fun deletePoLines(id: String)
+
+    @Query("SELECT * FROM purchases ORDER BY createdAt DESC")
+    fun observePurchases(): Flow<List<Purchase>>
+
+    @Insert
+    suspend fun insertPurchase(purchase: Purchase)
+
+    @Query("SELECT * FROM purchase_lines")
+    fun observeAllPurchaseLines(): Flow<List<PurchaseLine>>
+
+    @Insert
+    suspend fun insertPurchaseLine(line: PurchaseLine)
+}
+
+@Dao
 interface SaleDao {
     @Query("SELECT * FROM sales ORDER BY createdAt DESC")
     fun observeSales(): Flow<List<Sale>>
@@ -245,8 +284,12 @@ interface ProductDao {
         MoneyEntry::class,
         Sale::class,
         SaleLine::class,
+        PurchaseOrder::class,
+        PoLine::class,
+        Purchase::class,
+        PurchaseLine::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -257,6 +300,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun contactDao(): ContactDao
     abstract fun moneyDao(): MoneyDao
     abstract fun saleDao(): SaleDao
+    abstract fun purchaseDao(): PurchaseDao
 
     companion object {
         fun build(context: Context): AppDatabase =

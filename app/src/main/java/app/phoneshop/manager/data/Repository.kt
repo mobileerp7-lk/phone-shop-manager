@@ -31,6 +31,19 @@ data class PaymentInput(val accountId: String, val amount: Long)
 /** The outcome of saving a bill: the new bill id, or a message to show. */
 data class SaleResult(val saleId: String?, val error: String?)
 
+/** Goods that actually arrived. imeis has one entry per phone when the product is tracked by IMEI. */
+data class ReceiveLine(
+    val productId: String,
+    val name: String,
+    val qty: Int,
+    val unitCost: Long,
+    val tracksImei: Boolean,
+    val imeis: List<String>,
+    val poLineId: String? = null,
+)
+
+data class PoLineInput(val productId: String, val name: String, val qty: Int, val unitCost: Long)
+
 data class UnitInput(val imei1: String, val imei2: String)
 
 fun formatCode(prefix: String, n: Int): String =
@@ -46,6 +59,7 @@ class Repository(private val db: AppDatabase) {
     private val contactDao = db.contactDao()
     private val moneyDao = db.moneyDao()
     private val saleDao = db.saleDao()
+    private val purchaseDao = db.purchaseDao()
 
     /** Never null once loaded; a shop that has not finished setup gets defaults. */
     val settings: Flow<ShopSettings> = settingsDao.observe().map { it ?: ShopSettings() }
@@ -144,15 +158,114 @@ class Repository(private val db: AppDatabase) {
 
     suspend fun deleteEntryType(id: String) = moneyDao.softDeleteType(id, System.currentTimeMillis())
 
+    val purchaseOrders: Flow<List<PurchaseOrder>> = purchaseDao.observeOrders()
+    val poLines: Flow<List<PoLine>> = purchaseDao.observeAllPoLines()
+    val purchases: Flow<List<Purchase>> = purchaseDao.observePurchases()
+    val purchaseLines: Flow<List<PurchaseLine>> = purchaseDao.observeAllPurchaseLines()
+    suspend fun getOrder(id: String): PurchaseOrder? = purchaseDao.getOrder(id)
+    suspend fun getOrderLines(id: String): List<PoLine> = purchaseDao.getPoLines(id)
+    fun observePurchaseOrder(id: String): Flow<PurchaseOrder?> = purchaseDao.observeOrder(id)
+
+    /** Saves a purchase order (new or draft being edited). It changes no stock or money. */
+    suspend fun savePurchaseOrder(
+        existingId: String?,
+        supplierId: String,
+        orderDate: Long,
+        expectedDate: Long?,
+        note: String,
+        lines: List<PoLineInput>,
+        status: String,
+    ): String? = db.withTransaction {
+        if (lines.isEmpty()) return@withTransaction null
+        val settings = settingsDao.get() ?: ShopSettings()
+        val old = existingId?.let { purchaseDao.getOrder(it) }
+        val id = existingId ?: UUID.randomUUID().toString()
+        val poNo = old?.poNo ?: settings.nextPoNumber
+        if (old == null) settingsDao.save(settings.copy(nextPoNumber = poNo + 1))
+        purchaseDao.upsertOrder(
+            PurchaseOrder(id, poNo, supplierId, status, orderDate, expectedDate, note.trim(), old?.createdAt ?: System.currentTimeMillis())
+        )
+        purchaseDao.deletePoLines(id)
+        lines.forEach {
+            purchaseDao.upsertPoLine(PoLine(UUID.randomUUID().toString(), id, it.productId, it.name, it.qty, it.unitCost))
+        }
+        id
+    }
+
+    suspend fun setOrderStatus(id: String, status: String) {
+        purchaseDao.getOrder(id)?.let { purchaseDao.upsertOrder(it.copy(status = status)) }
+    }
+
+    /**
+     * Goods arrive: stock goes up (each phone with its IMEI and cost), the supplier's bill is recorded,
+     * any payment leaves the chosen account, and the unpaid part is added to what the shop owes.
+     * Returns an error message, or null when saved.
+     */
+    suspend fun receiveGoods(
+        poId: String?,
+        supplierId: String,
+        billNo: String,
+        lines: List<ReceiveLine>,
+        payAccountId: String?,
+        paid: Long,
+        payBy: Long?,
+    ): String? = db.withTransaction {
+        val real = lines.filter { it.qty > 0 }
+        if (real.isEmpty()) return@withTransaction "Nothing was received."
+        val allUnits = ArrayList<UnitInput>()
+        for (l in real) {
+            if (l.tracksImei) {
+                val cleaned = l.imeis.map { it.trim() }.filter { it.isNotEmpty() }
+                if (cleaned.size != l.qty) return@withTransaction "${l.name}: enter an IMEI for each of the ${l.qty} phones."
+                allUnits.addAll(cleaned.map { UnitInput(it, "") })
+            }
+        }
+        validateUnits(allUnits)?.let { return@withTransaction it }
+        val total = real.sumOf { it.qty * it.unitCost }
+        if (paid < 0 || paid > total) return@withTransaction "The payment is more than the bill."
+        if (paid > 0 && payAccountId == null) return@withTransaction "Choose the account the payment comes from."
+
+        val now = System.currentTimeMillis()
+        val purchaseId = UUID.randomUUID().toString()
+        for (l in real) {
+            if (l.tracksImei) {
+                l.imeis.map { it.trim() }.filter { it.isNotEmpty() }.forEach { insertUnit(l.productId, UnitInput(it, ""), l.unitCost, now) }
+            } else {
+                insertBatch(l.productId, l.qty, l.unitCost, now)
+            }
+            purchaseDao.insertPurchaseLine(PurchaseLine(UUID.randomUUID().toString(), purchaseId, l.productId, l.name, l.qty, l.unitCost))
+            productDao.getProduct(l.productId)?.let { productDao.upsertProduct(it.copy(updatedAt = now)) }
+        }
+        purchaseDao.insertPurchase(Purchase(purchaseId, poId, supplierId, billNo.trim(), total, paid, total - paid, payBy, now))
+        if (paid > 0 && payAccountId != null) {
+            moneyDao.insertEntry(
+                newEntry("PURCHASE_PAID", payAccountId, -paid, null, "Supplier bill ${billNo.trim()}", purchaseId)
+                    .copy(contactId = supplierId, refType = "PURCHASE", refId = purchaseId)
+            )
+        }
+        if (poId != null) {
+            val poLines = purchaseDao.getPoLines(poId)
+            for (pl in poLines) {
+                val got = real.filter { it.poLineId == pl.id }.sumOf { it.qty }
+                if (got > 0) purchaseDao.upsertPoLine(pl.copy(receivedQty = pl.receivedQty + got))
+            }
+            val after = purchaseDao.getPoLines(poId)
+            val done = after.all { it.receivedQty >= it.qty }
+            purchaseDao.getOrder(poId)?.let { purchaseDao.upsertOrder(it.copy(status = if (done) "RECEIVED" else "PART")) }
+        }
+        null
+    }
+
     val sales: Flow<List<Sale>> = saleDao.observeSales()
     val allSaleLines: Flow<List<SaleLine>> = saleDao.observeAllLines()
     fun observeSale(id: String): Flow<Sale?> = saleDao.observeSale(id)
     fun observeSaleLines(id: String): Flow<List<SaleLine>> = saleDao.observeLines(id)
 
     /** contact id -> what they owe the shop (customers) or what the shop owes them (suppliers). */
-    val contactBalances: Flow<Map<String, Long>> = combine(contacts, sales, entries) { people, bills, moves ->
+    val contactBalances: Flow<Map<String, Long>> = combine(contacts, sales, entries, purchases) { people, bills, moves, bought ->
         people.associate { p ->
-            val billed = bills.filter { it.customerId == p.id && it.status == "DONE" }.sumOf { it.due }
+            val billed = bills.filter { it.customerId == p.id && it.status == "DONE" }.sumOf { it.due } +
+                bought.filter { it.supplierId == p.id }.sumOf { it.due }
             val settled = moves.filter { it.contactId == p.id && it.voidedAt == null && (it.kind == "DEBT_PAID" || it.kind == "SUPPLIER_PAID") }
                 .sumOf { kotlin.math.abs(it.amount) }
             p.id to (p.openingBalance + billed - settled)

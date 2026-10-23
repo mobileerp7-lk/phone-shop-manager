@@ -91,6 +91,8 @@ fun MainShell(
                             "products" -> tab = 2
                             "sell" -> tab = 1
                             "bills" -> onNavigate("bills")
+                            "po" -> onNavigate("purchases/ORDERS")
+                            "purchases" -> onNavigate("purchases/BILLS")
                             "accounts" -> tab = 3
                             "money_entries" -> onNavigate("statement/ALL")
                             "transfers" -> onNavigate("money_entry/TRANSFER")

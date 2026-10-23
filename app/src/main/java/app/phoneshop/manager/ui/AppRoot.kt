@@ -139,6 +139,43 @@ private fun AppNav(repo: Repository, settings: ShopSettings) {
         ) { entry ->
             SettleScreen(repo, settings, entry.arguments?.getString("id") ?: "", onBack = { nav.popBackStack() })
         }
+        composable(
+            "purchases/{tab}",
+            arguments = listOf(navArgument("tab") { type = NavType.StringType }),
+        ) { entry ->
+            PurchasesScreen(
+                repo, settings, entry.arguments?.getString("tab") ?: "ORDERS",
+                onBack = { nav.popBackStack() },
+                onNewOrder = { nav.navigate("po_form/new") },
+                onOpenOrder = { nav.navigate("po/$it") },
+                onReceiveNew = { nav.navigate("receive/new") },
+            )
+        }
+        composable(
+            "po_form/{id}",
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString("id") ?: "new"
+            PoFormScreen(
+                repo, settings, if (id == "new") null else id,
+                onBack = { nav.popBackStack() },
+                onSaved = { saved -> nav.popBackStack(); if (id == "new") nav.navigate("po/$saved") },
+            )
+        }
+        composable(
+            "po/{id}",
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString("id") ?: ""
+            PoDetailScreen(repo, settings, id, onBack = { nav.popBackStack() }, onEdit = { nav.navigate("po_form/$id") }, onReceive = { nav.navigate("receive/$id") })
+        }
+        composable(
+            "receive/{id}",
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString("id") ?: "new"
+            ReceiveScreen(repo, settings, if (id == "new") null else id, onBack = { nav.popBackStack() })
+        }
         composable("services") { ServicesScreen(repo, settings, onBack = { nav.popBackStack() }) }
         composable("categories") { CategoriesScreen(repo, onBack = { nav.popBackStack() }) }
         composable(
