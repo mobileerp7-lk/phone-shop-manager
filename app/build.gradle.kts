@@ -5,6 +5,10 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 android {
     namespace = "app.phoneshop.manager"
     compileSdk = 35
@@ -21,6 +25,17 @@ android {
     // TEST-ONLY signing key (public on purpose, so test builds can update each other).
     // Real releases must be signed with a private key kept in GitHub Secrets.
     signingConfigs {
+        // The real key comes from GitHub Secrets (never from the repo). When it is missing,
+        // the test key below is used so builds still work.
+        val releaseFile = System.getenv("RELEASE_KEYSTORE_FILE")
+        if (!releaseFile.isNullOrBlank() && file(releaseFile).exists()) {
+            create("release") {
+                storeFile = file(releaseFile)
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+            }
+        }
         create("preview") {
             storeFile = file("preview.keystore")
             storePassword = "phoneshop-preview"
@@ -32,7 +47,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("preview")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("preview")
         }
     }
 
@@ -70,4 +85,6 @@ dependencies {
 
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("androidx.documentfile:documentfile:1.0.1")
+    implementation("androidx.biometric:biometric:1.1.0")
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
 }

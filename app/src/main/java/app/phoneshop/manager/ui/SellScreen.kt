@@ -106,6 +106,10 @@ fun SellScreen(
             if (cart.lines.isNotEmpty()) TextButton(onClick = { cart.clear() }) { Text("Clear", color = Bad) }
         }
         GlassField(query, { query = it }, "Search item, item code, IMEI or barcode")
+        val scanContext = androidx.compose.ui.platform.LocalContext.current
+        GlassButton("Scan barcode", {
+            app.phoneshop.manager.util.BarcodeScan.scan(scanContext, { query = it })
+        }, Modifier.fillMaxWidth())
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             GlassChip("Products", tab == "PRODUCTS") { tab = "PRODUCTS" }
             GlassChip("Services", tab == "SERVICES") { tab = "SERVICES" }

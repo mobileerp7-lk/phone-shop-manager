@@ -3,7 +3,7 @@ package app.phoneshop.manager
 import android.graphics.Color
 import android.os.Bundle
 import android.provider.Settings
-import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -12,7 +12,7 @@ import app.phoneshop.manager.ui.AppRoot
 import app.phoneshop.manager.ui.LocalReduceMotion
 import app.phoneshop.manager.ui.PhoneShopTheme
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(

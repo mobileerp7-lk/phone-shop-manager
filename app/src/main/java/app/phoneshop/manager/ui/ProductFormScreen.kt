@@ -235,6 +235,10 @@ fun ProductFormScreen(
             GlassField(name, { name = it }, "Product name (optional: made from the details above)")
             GlassField(itemCode, { itemCode = it.uppercase().filter { c -> !c.isWhitespace() } }, "Item code (made for you, you can change it)")
             GlassField(barcode, { barcode = it }, "Barcode / SKU (optional)")
+            val scanContext = androidx.compose.ui.platform.LocalContext.current
+            GlassButton("Scan barcode with camera", {
+                app.phoneshop.manager.util.BarcodeScan.scan(scanContext, { barcode = it })
+            }, Modifier.fillMaxWidth())
 
             SectionLabel("Prices (${currency.code})")
             GlassField(sell, { sell = it }, "Selling price *", keyboard = KeyboardType.Decimal)

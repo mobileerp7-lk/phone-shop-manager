@@ -85,7 +85,7 @@ object BillPdf {
         for ((name, amount) in bill.payments) row("Paid: $name", Money.format(amount, currency))
         if (s.due > 0) row("Balance due", Money.format(s.due, currency), bold)
         y += 8f
-        center("Thank you!", normal)
+        Prefs.billFooter(context).lines().filter { it.isNotBlank() }.forEach { center(it, normal) }
         doc.finishPage(page)
 
         val dir = File(context.cacheDir, "bills").apply { mkdirs() }
@@ -93,6 +93,38 @@ object BillPdf {
         FileOutputStream(file).use { doc.writeTo(it) }
         doc.close()
         return file
+    }
+
+    /** The same bill as plain text for a thermal receipt printer. */
+    fun receiptText(context: Context, bill: BillView, currency: CurrencyInfo, cols: Int): String {
+        val s = bill.sale
+        val sb = StringBuilder()
+        fun center(t: String) { sb.append(" ".repeat(((cols - t.length) / 2).coerceAtLeast(0))).append(t).append('\n') }
+        fun row(l: String, r: String) {
+            val gap = (cols - l.length - r.length).coerceAtLeast(1)
+            sb.append(l.take(cols - r.length - 1)).append(" ".repeat(gap)).append(r).append('\n')
+        }
+        fun rule() { sb.append("-".repeat(cols)).append('\n') }
+        center(bill.settings.shopName.ifBlank { "Shop" })
+        listOf(bill.settings.address, bill.settings.phone).filter { it.isNotBlank() }.forEach { center(it) }
+        if (bill.settings.taxEnabled && bill.settings.taxNumber.isNotBlank()) center("Tax no. ${bill.settings.taxNumber}")
+        rule()
+        row("Bill #${s.billNo}", dateText(s.createdAt))
+        sb.append("Customer: ${bill.customerName}\n")
+        rule()
+        for (l in bill.lines) {
+            row("${l.name} x${l.qty}", Money.format(l.lineTotal, currency))
+            if (l.imei.isNotBlank()) sb.append("  IMEI ${l.imei}\n")
+            if (l.warrantyMonths > 0) sb.append("  Warranty till ${warrantyUntil(s.createdAt, l.warrantyMonths)}\n")
+        }
+        rule()
+        if (s.discount > 0) row("Discount", "-" + Money.format(s.discount, currency))
+        row("TOTAL", Money.format(s.total, currency))
+        for ((name, amount) in bill.payments) row("Paid: $name", Money.format(amount, currency))
+        if (s.due > 0) row("Balance due", Money.format(s.due, currency))
+        rule()
+        Prefs.billFooter(context).lines().filter { it.isNotBlank() }.forEach { center(it) }
+        return sb.toString()
     }
 
     /** Opens the phone's share sheet: WhatsApp, print, save to Drive and so on. */

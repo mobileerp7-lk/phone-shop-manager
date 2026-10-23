@@ -57,6 +57,15 @@ fun LoginScreen(repo: Repository, staff: List<Staff>, onSignedIn: (Staff) -> Uni
             )
         }
         error?.let { Text(it, color = Bad, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp)) }
+        val ctx = androidx.compose.ui.platform.LocalContext.current
+        if (current != null && current.pinHash.isNotEmpty() &&
+            app.phoneshop.manager.util.Prefs.fingerprintStaff(ctx) == current.id &&
+            app.phoneshop.manager.util.Fingerprint.available(ctx)
+        ) {
+            GlassButton("Use fingerprint", {
+                app.phoneshop.manager.util.Fingerprint.ask(ctx, "Open the shop", { onSignedIn(current) }) { error = it }
+            }, Modifier.fillMaxWidth().padding(top = 16.dp))
+        }
         GradientButton("Open the shop", {
             val s = current
             if (s == null) error = "Choose a name."

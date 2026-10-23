@@ -137,8 +137,7 @@ fun SettingsScreen(
         NavRow("Stock cost method (no-IMEI items)", "Average", null)
 
         SectionLabel("Selling")
-        NavRow("Bill layout and footer", "Soon", null)
-        NavRow("Receipt printer", "Soon", null)
+        NavRow("Bill footer and receipt printer", "", { onNavigate("printing") })
         NavRow("Payment methods", "Soon", null)
 
         SectionLabel("Where your data lives")
@@ -156,7 +155,32 @@ fun SettingsScreen(
         SectionLabel("People and safety")
         NavRow("Staff and roles", "${staff.size} people", { onNavigate("staff") })
         NavRow("PIN lock for the owner", if (staff.firstOrNull { it.role == "OWNER" }?.pinHash?.isNotEmpty() == true) "On" else "Off", { editing = Editing.PIN })
-        NavRow("Export all data (Excel)", "Soon", null)
+        NavRow("Export all data (opens in Excel)", "", {
+            scope.launch {
+                status = "Preparing..."
+                val f = withContext(Dispatchers.IO) { app.phoneshop.manager.util.Export.create(context, repo, Session.canSeeCost) }
+                app.phoneshop.manager.util.Export.share(context, f)
+                status = "Choose where to save it. Open the files with Excel or Google Sheets."
+            }
+        })
+        if (app.phoneshop.manager.util.Fingerprint.available(context)) {
+            val owner = staff.firstOrNull { it.role == "OWNER" }
+            var fp by remember { mutableStateOf(owner != null && app.phoneshop.manager.util.Prefs.fingerprintStaff(context) == owner.id) }
+            SwitchRow(
+                "Fingerprint unlock for the owner",
+                if (owner?.pinHash?.isNotEmpty() == true) "Open the app with your fingerprint on this phone." else "Set a PIN first.",
+                fp,
+                { on ->
+                    if (owner != null) {
+                        if (on) app.phoneshop.manager.util.Fingerprint.ask(context, "Confirm your fingerprint", {
+                            app.phoneshop.manager.util.Prefs.setFingerprintStaff(context, owner.id); fp = true
+                        }) { status = it }
+                        else { app.phoneshop.manager.util.Prefs.setFingerprintStaff(context, ""); fp = false }
+                    }
+                },
+                enabled = owner?.pinHash?.isNotEmpty() == true,
+            )
+        }
     }
 
     when (editing) {

@@ -98,6 +98,19 @@ fun BillScreen(
             val file = BillPdf.create(context, BillView(settings, s, lines, customerName, payments), currency)
             BillPdf.share(context, file, s.billNo)
         }, Modifier.fillMaxWidth())
+        if (app.phoneshop.manager.util.Prefs.printerAddress(context).isNotBlank()) {
+            val printScope = androidx.compose.runtime.rememberCoroutineScope()
+            var printMsg by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+            GlassButton("Print on receipt printer", {
+                printScope.launch {
+                    val cols = app.phoneshop.manager.util.ReceiptPrinter.columns(app.phoneshop.manager.util.Prefs.paperMm(context))
+                    val text = BillPdf.receiptText(context, BillView(settings, s, lines, customerName, payments), currency, cols)
+                    printMsg = "Printing..."
+                    printMsg = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { app.phoneshop.manager.util.ReceiptPrinter.print(context, text) } ?: "Sent to the printer."
+                }
+            }, Modifier.fillMaxWidth())
+            printMsg?.let { Text(it, color = Muted, fontSize = 12.sp) }
+        }
         Text("The share sheet lets you send the bill on WhatsApp, print it, or save it as a PDF.", color = Muted, fontSize = 12.sp)
         GlassButton("Start new sale", onNewSale, Modifier.fillMaxWidth())
         if (!cancelled) GlassButton("Customer returns items", onReturn, Modifier.fillMaxWidth())

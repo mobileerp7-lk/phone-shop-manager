@@ -354,8 +354,8 @@ interface ProductDao {
     fun observeBatchStock(): Flow<List<StockRow>>
 }
 
-// exportSchema stays off until Step 2; before any public release it must be turned on
-// and every schema change must ship a Room migration so shop data is never lost.
+// Version 10 is the first public layout (schemas/ holds the exported copy).
+// Every later change to a table must bump the version and add a Migration.
 @Database(
     entities = [
         ShopSettings::class,
@@ -385,7 +385,7 @@ interface ProductDao {
         ActivityLog::class,
     ],
     version = 10,
-    exportSchema = false,
+    exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun settingsDao(): SettingsDao
@@ -405,9 +405,9 @@ abstract class AppDatabase : RoomDatabase() {
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "phoneshop.db")
                 .addMigrations(MIGRATION_1_2)
-                // Building phase only: test builds may clear test data when the layout grows.
-                // Before the public release this is removed and real migrations are required.
-                .fallbackToDestructiveMigration()
+                // Only the early test builds (versions 2 to 9) may start fresh. From version 10 on,
+                // every change to the tables must ship a real migration so shop data is never lost.
+                .fallbackToDestructiveMigrationFrom(2, 3, 4, 5, 6, 7, 8, 9)
                 .build()
 
         /** Adds item codes. Products saved before this get PH-0001, PH-0002 ... so nothing is lost. */
